@@ -1,0 +1,34 @@
+{
+  "name": "Voronoi-generator",
+  "version": "1.0.0",
+  "description": "library for generating voronoi diagrams using custom distance functions",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JDragovich/voronoi-generator.git"
+  },
+  "author": "Joe Dragovich <joseph.dragovich@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JDragovich/political-networks/issues"
+  },
+  "homepage": "https://github.com/JDragovich/political-networks#readme",
+  "devDependencies": {
+    "babel-preset-es2015": "^6.24.1",
+    "babelify": "^7.3.0",
+    "gulp": "^3.9.1",
+    "gulp-babel": "^6.1.2",
+    "gulp-browserify": "^0.5.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-sourcemaps": "^2.6.0",
+    "gulp-typescript": "^3.1.6",
+    "gulp-watch": "^4.3.11",
+    "typescript": "^2.3.2",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0",
+    "watchify": "^3.9.0"
+  }
+}
