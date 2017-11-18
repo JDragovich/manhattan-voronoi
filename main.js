@@ -19,9 +19,10 @@ function randomNormal(sharpness){
 let euclideanCallback = function(a,b){ return Math.sqrt(Math.pow(a[0] - b[0],2) + Math.pow(a[1] - b[1],2)) };
 let manhattanCallback = function(a,b){ return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) };
 
-//let sites = new Array(4).fill(0).map(e => [randomNormal(2) * width, randomNormal(2) * height]);
-let sites = [[254,97],[274,176],[279,89],[317,238]];
-console.log(JSON.stringify(sites));
+//let sites = new Array(8).fill(0).map(e => [randomNormal(2) * width, randomNormal(2) * height]);
+let sites = [[282.06433822386543,40.07881156529125],[150.04903621580485,103.90308067487344],[336.2769901992605,274.4919731564961],[248.908553127363,89.49534423129815]];
+//let sites = [[195,150],[199,100],[201,300],[205,250]];
+console.log(JSON.stringify(sites.sort((a,b) => a[0] - b[0])));
 
 let rawData = generateVoronoiPoints(sites ,width, height, manhattanCallback );
 let vectorPoints = generateL1Voronoi(sites ,width, height);
@@ -50,7 +51,7 @@ vectorPoints.forEach(site =>{
     site.bisectors.forEach(bisector => {
         var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'polyline'); //Create a path in SVG's namespace
         newElement.setAttribute("points", bisector.points.map(e => e.join(",")).join(" ")); //Set path's data
-        newElement.style.stroke = bisector.mergeLine ? "#00F" : "#000"; //Set stroke colour
+        newElement.style.stroke = bisector.hasOwnProperty("mergeLine") ? "#00F" : "#000"; //Set stroke colour
         newElement.style.fill = "none";
         newElement.style.strokeWidth = "1px"; //Set stroke width
         svg.appendChild(newElement);
