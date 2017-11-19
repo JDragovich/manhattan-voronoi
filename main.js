@@ -20,8 +20,8 @@ let euclideanCallback = function(a,b){ return Math.sqrt(Math.pow(a[0] - b[0],2) 
 let manhattanCallback = function(a,b){ return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) };
 
 //let sites = new Array(8).fill(0).map(e => [randomNormal(2) * width, randomNormal(2) * height]);
-let sites = [[282.06433822386543,40.07881156529125],[150.04903621580485,103.90308067487344],[336.2769901992605,274.4919731564961],[248.908553127363,89.49534423129815]];
-//let sites = [[195,150],[199,100],[201,300],[205,250]];
+let sites = [[178.6978110026753,375.8755327066578],[188.55075344345238,86.75299900906852],[201.2991377878236,338.7527911607224],[247.2143201579776,132.88171488121026],[278.8440831603344,139.43338206991726],[291.00253611821074,208.22676737264715],[312.01329708785227,113.99210497181124],[330.46710342743,16.331058627760964]];
+//let sites = [[178.6978110026753,375.8755327066578],[188.55075344345238,86.75299900906852],[201.2991377878236,338.7527911607224],[247.2143201579776,132.88171488121026]];
 console.log(JSON.stringify(sites.sort((a,b) => a[0] - b[0])));
 
 let rawData = generateVoronoiPoints(sites ,width, height, manhattanCallback );
@@ -51,7 +51,7 @@ vectorPoints.forEach(site =>{
     site.bisectors.forEach(bisector => {
         var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'polyline'); //Create a path in SVG's namespace
         newElement.setAttribute("points", bisector.points.map(e => e.join(",")).join(" ")); //Set path's data
-        newElement.style.stroke = bisector.hasOwnProperty("mergeLine") ? "#00F" : "#000"; //Set stroke colour
+        newElement.style.stroke = bisector.mergeLine ? getColor(bisector.mergeLine) : "#000"; //Set stroke colour
         newElement.style.fill = "none";
         newElement.style.strokeWidth = "1px"; //Set stroke width
         svg.appendChild(newElement);
@@ -79,5 +79,20 @@ vectorPoints.forEach(site =>{
     svg.appendChild(siteCirc);
 });
 
+function getColor(color){
+    switch(color){
+        case 4:
+            return "#4286f4";
+        break;
+        case 8:
+            return "#44f453";
+        break;
+        case 16:
+            return "#931d78";
+        break;
+        default:
+            return "#00FF00";
+    }
+}
 
 //main.textContent = JSON.stringify(vectorPoints, null, 4);
