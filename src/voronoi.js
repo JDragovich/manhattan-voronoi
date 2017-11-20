@@ -287,8 +287,15 @@ function generateL1Voronoi(sitePoints,width,height){
             let hopTo = findHopTo(bisector, trapped);
             return goUp === hopTo.site[1] < trapped.site[1] && isBisectorTrapped(trapper,bisector); 
         }).sort((a,b) => {
-            let extremeA = getExtremePoint(a, goUp);
-            let extremeB = getExtremePoint(b, goUp);
+
+            let hopToA = findHopTo(a, trapped);
+            let hopToB = findHopTo(b, trapped);
+
+            let mergeLineA = findBisector([hopToA, trapper]);
+            let mergeLineB = findBisector([hopToB, trapper]);
+
+            let extremeA = getExtremePoint(mergeLineA, goUp);
+            let extremeB = getExtremePoint(mergeLineB, goUp);
             
             return goUp ? extremeB - extremeA : extremeA - extremeB;
         })[0];
@@ -402,12 +409,12 @@ function generateL1Voronoi(sitePoints,width,height){
     };
 
     function isNewBisectorUpward(hopTo, hopFrom, site){
-        //console.log(hopTo.site, hopFrom.site, site.site);
+        
         let slope = (hopTo.site[1] - site.site[1])/(hopTo.site[0] - site.site[0]);
         let intercept = hopTo.site[1] - (slope * hopTo.site[0]);
 
         let isAboveLine = hopFrom.site[1] > (slope * hopFrom.site[0]) + intercept;
-        //console.log("slope", slope, "intercept", intercept, "isAboveLine", isAboveLine, hopFrom.site[1], (slope * hopFrom.site[0]) + intercept);
+        
         return isAboveLine;
     }
 
@@ -418,10 +425,7 @@ function generateL1Voronoi(sitePoints,width,height){
 
         for(let i = 0; i < B1.points.length - 1; i++){
             for(let j = 0; j < B2.points.length - 1; j++){
-                //console.log(i,j);
                 let intersect = segementIntersection([B1.points[i], B1.points[i+1]], [B2.points[j], B2.points[j+1]], i, j);
-                //console.log(intersect);
-                //console.assert(!intersect, `found segment intersect ${intersect}`);
 
                 if(intersect){
                     return intersect;
