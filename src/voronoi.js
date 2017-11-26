@@ -90,6 +90,9 @@ function generateL1Voronoi(sitePoints,width,height){
             let downStrokeArray = walkMergeLine(initialR, initialL, initialBisector, [0,0], false, null, mergeArray);
 
             downStrokeArray.forEach(bisector => {
+                bisector.sites[0].bisectors = clearOutOrphans(bisector.sites[0], bisector.sites[1]);
+                bisector.sites[1].bisectors = clearOutOrphans(bisector.sites[1], bisector.sites[0]);                
+
                 bisector.sites.forEach(site => {
                     site.bisectors.push(bisector);
                 })
@@ -161,6 +164,7 @@ function generateL1Voronoi(sitePoints,width,height){
 
                         let hopTo = findHopTo(leftOrphan, currentL);
 
+                        currentR = findCorrectW(currentR, hopTo);                        
                         let newMergeBisector = findBisector([hopTo, currentR]);
 
                         // it might be trapped by the other side, in which case we need to find that.
@@ -168,12 +172,12 @@ function generateL1Voronoi(sitePoints,width,height){
                             let hopTo = findHopTo(bisector, currentR);
                             return isBisectorTrapped(hopTo, newMergeBisector);
                         });
-
+                        /*
                         if(rightTrapBisector){
-                            currentR = findHopTo(rightTrapBisector, currentR);
+                            currentR = findCorrectW(currentR, hopTo);
                             newMergeBisector = findBisector([hopTo, currentR]); 
                         }
-
+                        */
                         newMergeBisector.mergeLine = R.length * 2;                        
 
                         console.log(newMergeBisector);
@@ -193,6 +197,7 @@ function generateL1Voronoi(sitePoints,width,height){
 
                         let hopTo = findHopTo(rightOrphan, currentR);
 
+                        currentL = findCorrectW(currentL, hopTo);                        
                         let newMergeBisector = findBisector([hopTo, currentL]);
                         
                         // it might be trapped by the other side, in which case we need to find that.
@@ -200,12 +205,12 @@ function generateL1Voronoi(sitePoints,width,height){
                             let hopTo = findHopTo(bisector, currentL);
                             return isBisectorTrapped(hopTo, newMergeBisector);
                         });
-
+                        /*
                         if(leftTrapBisector){
-                            currentL = findHopTo(leftTrapBisector, currentL);
+                            currentL = findCorrectW(currentL, hopTo);
                             newMergeBisector = findBisector([hopTo, currentL]);
                         }
-
+                        */
                         newMergeBisector.mergeLine = R.length * 2;                        
 
                         mergeArray.push(newMergeBisector);                        
@@ -215,6 +220,7 @@ function generateL1Voronoi(sitePoints,width,height){
 
                     console.log("all done");
                     console.log(count);
+
                     
                     return mergeArray;
                 }
@@ -225,7 +231,7 @@ function generateL1Voronoi(sitePoints,width,height){
                     trimBisector(cropR.bisector, currentBisector, cropR.point);
                     trimBisector(currentBisector, cropR.bisector, cropR.point);
                     currentBisector.intersections.push(cropR.point);
-                    crossedBorder = cropR.bisector; 
+                    crossedBorder = cropR.bisector;
                     currentR = cropR.bisector.sites.find(e => e !== currentR);
                     console.log("walked to new R", currentR.site, currentCropPoint[0] === cropR.point[0] && currentCropPoint[1] === cropR.point[1]);
                     currentCropPoint = cropR.point;               
@@ -234,7 +240,7 @@ function generateL1Voronoi(sitePoints,width,height){
                     trimBisector(cropL.bisector, currentBisector, cropL.point);
                     trimBisector(currentBisector, cropL.bisector, cropL.point);
                     currentBisector.intersections.push(cropL.point);
-                    crossedBorder = cropL.bisector; 
+                    crossedBorder = cropL.bisector;
                     currentL = cropL.bisector.sites.find(e => e !== currentL);
                     console.log("walked to new L", currentL.site, currentCropPoint[0] === cropL.point[0] && currentCropPoint[1] === cropL.point[1]);                        
                     currentCropPoint = cropL.point;                                       
@@ -343,45 +349,41 @@ function generateL1Voronoi(sitePoints,width,height){
             return determineStartingBisector(w, nextR, width, intersection.point, R);
         }
         else{
-            var startingBisector = findBisector([w, nearestNeighbor]);
-            console.log("No intersection found anywhere");
+            console.log("No intersection found anywhere");            
+
+            w = findCorrectW(w,nearestNeighbor);
             
+            let startingBisector = findBisector([w, nearestNeighbor]);
             startingBisector.mergeLine = R * 2;
 
-            // we have to find out if this new starting bisector is trapped.
-            let wTrap = w.bisectors.map(e => {
-                let hopTo = findHopTo(e,w);
-                return {hopTo:hopTo, isTrapped:isBisectorTrapped(hopTo, startingBisector)}
-            }).find(e => e.isTrapped);
-            
-            let nearestNeighborTrap = nearestNeighbor.bisectors.map(e => {
-                let hopTo = findHopTo(e,nearestNeighbor);
-                return {hopTo:hopTo, isTrapped:isBisectorTrapped(hopTo, startingBisector)}
-            }).find(e => e.isTrapped);
+            return {
+                startingBisector: startingBisector,
+                w:w,
+                nearestNeighbor: nearestNeighbor,
+                startingIntersection: intersection ? intersection.point : w.site
+            };
 
-            if(wTrap){
-                console.log("looks ike the starting bisector is trapped", wTrap, nearestNeighborTrap)
-                startingBisector = findBisector([wTrap.hopTo, nearestNeighbor]); 
-                startingBisector.mergeLine = R * 2;
-                
-                return {
-                    startingBisector: startingBisector,
-                    w:wTrap.hopTo,
-                    nearestNeighbor: nearestNeighbor,
-                    startingIntersection: intersection ? intersection.point : w.site
-                };
-            }
-            else{
-                return {
-                    startingBisector: startingBisector,
-                    w:w,
-                    nearestNeighbor: nearestNeighbor,
-                    startingIntersection: intersection ? intersection.point : w.site
-                };
-            }
         }
 
     };
+
+    function findCorrectW(w, nearestNeighbor){
+
+        var startingBisector = findBisector([w, nearestNeighbor]);        
+
+        let wTrap = w.bisectors.map(e => {
+            let hopTo = findHopTo(e,w);
+            return {hopTo:hopTo, isTrapped:isBisectorTrapped(hopTo,startingBisector)}
+        }).filter(e => e.isTrapped)
+        .sort((a,b) => distance(a.hopTo.site,nearestNeighbor.site) - distance(b.hopTo.site, nearestNeighbor.site))[0];
+        console.log("wtrap",wTrap);
+        if(wTrap){
+            return findCorrectW(wTrap.hopTo, nearestNeighbor);
+        }
+        else{
+            return w;
+        }
+    }
 
     function findHopTo(bisector, hopFrom){
         return bisector.sites.find(e => e !== hopFrom);
