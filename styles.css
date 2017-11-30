@@ -1,0 +1,7 @@
+.polygon{
+    fill: #fff;
+}
+
+.polygon:hover{
+    fill: #00f;
+}

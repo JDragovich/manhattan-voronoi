@@ -19,10 +19,8 @@ function randomNormal(sharpness){
 let euclideanCallback = function(a,b){ return Math.sqrt(Math.pow(a[0] - b[0],2) + Math.pow(a[1] - b[1],2)) };
 let manhattanCallback = function(a,b){ return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) };
 
-let raw = new Array(1024).fill(0).map(e => [randomNormal(2) * width, randomNormal(2) * height]);
-//let raw = [[77.61065242536903,246.33245882962115],[94.90867692526774,121.0366181168756],[105.01541726898313,237.0567359267696],[108.66108308754309,319.4049119475416],[111.2763719132499,201.65545532534273],[115.88366260747125,196.28875655020303],[118.12546296467397,325.62955381313856],[122.66972041696698,196.02386756414538],[123.21379517988697,134.30197246183795],[133.9450450678297,52.67593813809728],[134.88055764406357,315.2568707708246],[139.38072095034255,145.77175529538331],[139.94902195557387,225.53525750523642],[140.60398728189259,221.65738401420296],[150.01753392005074,313.92526620978185],[151.2919169908887,238.72684010985603],[153.7560298086193,246.71686310601427],[163.3130753386515,221.2036372124218],[169.90710724357513,128.84810438783353],[171.69327032743973,304.74681364547865],[174.35543908218887,194.15552736509713],[174.74250142541305,114.11383560793355],[179.0917062943838,169.61062277753092],[188.02439127830328,191.2076775651459],[190.29758187643097,201.719594235266],[192.45655497550422,305.3032936532212],[194.47104547762888,149.20337388771395],[194.72264874389867,179.81751092033454],[200.49638470832667,63.370510531102966],[207.66651631224656,171.63373891819904],[207.96555946355295,88.36903026115701],[212.35850905842844,114.05307324073956],[213.49423656659167,291.3310294350417],[225.53198817251263,353.7473737500669],[226.30583061417312,266.72831809864357],[227.6530397531109,127.92598657391308],[229.876632973155,107.3465720867779],[235.55351058948557,26.63536656630061],[235.79033794235764,83.16372530365737],[236.4450798319433,385.6979987341058],[238.43296107907847,156.81359341659933],[238.45407799083577,175.4180454484903],[247.18794506604985,143.7966259150787],[247.3027856638106,171.9441642516779],[249.16937084715562,253.9131719076996],[250.81338824124032,320.2270796380284],[251.9951557837837,35.36739887835658],[256.9039371979416,261.99186635508903],[258.4240443058085,72.00504497613255],[270.7073976699238,303.1329587130543],[272.40231345928623,329.8595504068467],[281.7366939312898,142.42254718452023],[283.2774228755713,199.07653079338655],[284.30978499564975,139.88878600701833],[291.64387482679575,245.1393232223007],[293.48143671262596,241.99603145037543],[299.14984763205564,208.54499803534367],[314.908803395613,240.02930319708372],[317.24401812360264,342.4505541550271],[318.63155607268243,301.83198955392135],[319.6834826171549,189.1702081895613],[323.20261506322777,271.33968387760825],[325.64668242511755,288.18975664417485],[329.6460251958274,287.85887967949674]];
-//let sites = raw.slice(35,59);
-//let sites = raw.slice(16,24);
+let raw = new Array(40).fill(0).map(e => [randomNormal(2) * width, randomNormal(2) * height]);
+//let raw = [[62.530666858000615,110.15574589200754],[76.73642547622488,342.0385804330675],[107.12234972277508,186.88826257322617],[111.39263316932984,372.4442865547021],[154.00095917916894,182.49617790597532],[177.9969663696,296.15268845721016],[211.17536846856405,356.37948357567507],[221.38107495521834,233.21436705300266],[266.96631965141427,118.91850702924395],[298.6358548847654,191.4053632598975]];
 let sites = raw.slice(0);
 console.log(JSON.stringify(sites.sort((a,b) => a[0] - b[0])));
 console.log(sites.length);
@@ -50,7 +48,7 @@ sites.forEach(e => {
 
 // draw svg shapes
 vectorPoints.forEach(site =>{
-
+    /*
     site.bisectors.forEach(bisector => {
         var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'polyline'); //Create a path in SVG's namespace
         newElement.setAttribute("points", bisector.points.map(e => e.join(",")).join(" ")); //Set path's data
@@ -69,11 +67,29 @@ vectorPoints.forEach(site =>{
         });
 
     });
-
+    */
    
-    
-    
+    var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'path'); //Create a path in SVG's namespace
+    newElement.setAttribute("d", site.d); //Set path's data
+    newElement.setAttribute("class", "polygon"); //Set path's data    
+    newElement.style.stroke = "#000"; //Set stroke colour
+    newElement.style.strokeWidth = "1px"; //Set stroke width
+    svg.appendChild(newElement);
+    /*
+    var start = document.createElementNS("http://www.w3.org/2000/svg", 'circle'); //Create a path in SVG's namespace
+    start.setAttribute("cx", site.polygonPoints[0][0]); //Set path's data
+    start.setAttribute("cy", site.polygonPoints[0][1]); //Set path's data
+    start.setAttribute("r", 2); //Set path's data
+    start.style.fill = "#f00"; //Set stroke colour
+    svg.appendChild(start);
 
+    var end = document.createElementNS("http://www.w3.org/2000/svg", 'circle'); //Create a path in SVG's namespace
+    end.setAttribute("cx", site.polygonPoints[site.polygonPoints.length - 1][0]); //Set path's data
+    end.setAttribute("cy", site.polygonPoints[site.polygonPoints.length - 1][1]); //Set path's data
+    end.setAttribute("r", 2); //Set path's data
+    end.style.fill = "#f00"; //Set stroke colour
+    svg.appendChild(end);
+    */
     var siteCirc = document.createElementNS("http://www.w3.org/2000/svg", 'circle'); //Create a path in SVG's namespace
     siteCirc.setAttribute("cx", site.site[0]); //Set path's data
     siteCirc.setAttribute("cy", site.site[1]); //Set path's data
@@ -103,7 +119,7 @@ function getColor(color){
             return "#009182";
         break;   
         default:
-            return "#00FF00";
+            return "#000000";
     }
 }
 
