@@ -42,7 +42,7 @@ canvas.fillStyle = "#000000";
 
 sites.forEach(e => {
     canvas.beginPath();
-    canvas.arc(e[0], e[1], 2, 0, Math.PI * 2,);
+    canvas.arc(e[0], e[1], 1, 0, Math.PI * 2,);
     canvas.fill();
 });
 
@@ -93,7 +93,7 @@ vectorPoints.forEach(site =>{
     var siteCirc = document.createElementNS("http://www.w3.org/2000/svg", 'circle'); //Create a path in SVG's namespace
     siteCirc.setAttribute("cx", site.site[0]); //Set path's data
     siteCirc.setAttribute("cy", site.site[1]); //Set path's data
-    siteCirc.setAttribute("r", 2); //Set path's data
+    siteCirc.setAttribute("r", 1); //Set path's data
     siteCirc.style.fill = "#000"; //Set stroke colour
     svg.appendChild(siteCirc);
 });
