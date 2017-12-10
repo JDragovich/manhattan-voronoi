@@ -4,7 +4,8 @@
  * @param {array} points 
  * @param {number} width 
  * @param {number} height 
- * @param {function} distanceCallback 
+ * @param {function} distanceCallback
+ * @returns {Array<Site>} 
  */
 
 function generateVoronoiPoints(points, width, height, distanceCallback){
@@ -38,7 +39,8 @@ function generateVoronoiPoints(points, width, height, distanceCallback){
  * 
  * @param {array} sitePoints 
  * @param {number} width 
- * @param {sunber} height 
+ * @param {number} height
+ * @returns {Array<Site>} 
  */
 
 function generateL1Voronoi(sitePoints,width,height){
@@ -48,17 +50,16 @@ function generateL1Voronoi(sitePoints,width,height){
         if(a[0] !== b[0]){
             return a[0] - b[0];
         }
-        else if(a[1] !== b[1]){
+        else{
             return a[1] - b[1];
-        }
-        else {
-            throw new Exception("Points cannot lie on a square...")
         }
     }).map(e => {return {site:e, bisectors:[]}});
 
     const findBisector = curryFindBisector(findL1Bisector, width, height);
-
-    return recursiveSplit(sites, findBisector, width, height).map(site => {
+    const graph = recursiveSplit(sites, findBisector, width, height);
+    console.log(graph);
+    return graph.map(site => {
+        //console.log(site);
         site.polygonPoints = site.bisectors.reduce((total, bisector, index, bisectors)=>{
 
             if(index === 0){
@@ -129,6 +130,15 @@ function generateL1Voronoi(sitePoints,width,height){
 
 }
 
+/**
+ * Recursivly split and merge sets of points
+ * 
+ * @param {Array} splitArray 
+ * @param {function} findBisector 
+ * @param {Number} width 
+ * @param {Number} height
+ * @returns {Array<Site>}
+ */
 function recursiveSplit(splitArray, findBisector, width, height){
     
     // if its got more than two points in it, split it recursively
@@ -156,6 +166,7 @@ function recursiveSplit(splitArray, findBisector, width, height){
         let mergeArray = [initialBisector, ...upStrokeArray, ...downStrokeArray];            
 
         mergeArray.forEach(bisector => {
+            bisector.mergeLine = splitArray.length;
             bisector.sites[0].bisectors = clearOutOrphans(bisector.sites[0], bisector.sites[1]);
             bisector.sites[1].bisectors = clearOutOrphans(bisector.sites[1], bisector.sites[0]);                
 
@@ -171,6 +182,7 @@ function recursiveSplit(splitArray, findBisector, width, height){
     // otherwise, determine te vertexes if its got two sites
     else if(splitArray.length === 2){
         let bisector = findBisector(...splitArray);
+        console.log(bisector);
         splitArray.forEach(e => { e.bisectors.push(bisector) });
         return splitArray;
     }
@@ -181,6 +193,18 @@ function recursiveSplit(splitArray, findBisector, width, height){
     }
 }
 
+/**
+ * 
+ * @param {Site} currentR 
+ * @param {Site} currentL 
+ * @param {Bisector} currentBisector 
+ * @param {Array} currentCropPoint 
+ * @param {Boolean} goUp 
+ * @param {Bisector} crossedBorder 
+ * @param {Array} mergeArray - Array of Bisectors 
+ * @param {function} findBisector
+ * @returns {Array<Bisector>} 
+ */
 function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, goUp, crossedBorder = null, mergeArray = [], findBisector){
     
     if(
@@ -213,19 +237,19 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
     let cropL = cropLArray.length > 0 && cropLArray[0] !== currentBisector ? cropLArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
     let cropR = cropRArray.length > 0 && cropRArray[0] !== currentBisector ? cropRArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
 
-    //if no intersection, we're done.
+    // If no intersection, we're done.
     if(
         (!cropL.bisector && !cropR.bisector) ||
         (cropL.point[0] === cropR.point[0] && cropL.point[1] === cropR.point[1])
     ){
-        // if the final merge bisector is horizontal, check to see if there are orphans 
+        // If the final merge bisector is horizontal, check to see if there are orphans 
         let leftOrphan = checkForOphans(currentR, currentL, goUp, findBisector); 
         let rightOrphan = checkForOphans(currentL, currentR, goUp, findBisector);
 
         if( 
             leftOrphan 
         ){
-            // remove trapped bisector
+            // Remove trapped bisector
             leftOrphan.sites.forEach(site => {
                 site.bisectors = site.bisectors.filter(e => e !== leftOrphan);
             });
@@ -243,7 +267,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         else if(
             rightOrphan
         ){
-            // remove trapped bisector
+            // Remove trapped bisector
             rightOrphan.sites.forEach(site => {
                 site.bisectors = site.bisectors.filter(e => e !== rightOrphan);
             });
@@ -278,14 +302,22 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         currentCropPoint = cropL.point;                                       
     }
     else{
-        console.warn("crop points are equal...");
+        throw new Error("no equal crop points");
     }
 
     return walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, goUp, crossedBorder, mergeArray, findBisector);            
     
 }
 
-//determine starting bisector
+/**
+ * determine starting bisector for the merge process
+ * 
+ * @param {Array} w - starting point in form [x, y] 
+ * @param {Array} nearestNeighbor point in form [x, y]
+ * @param {number} width 
+ * @param {Array} lastIntersect point in form [x,y] 
+ * @param {function} findBisector  
+ */
 function determineStartingBisector(w, nearestNeighbor, width, lastIntersect = null, findBisector){
     
     let z = [width, w.site[1]];
@@ -329,6 +361,14 @@ function determineStartingBisector(w, nearestNeighbor, width, lastIntersect = nu
 
 };
 
+/**
+ * Ensure that the starting point is correct and would not result in a trapped bisector
+ * 
+ * @param {Array} w in form [x,y] 
+ * @param {Array} nearestNeighbor in form [x,y]
+ * @param {function} findBisector
+ * @returns {Array} in form [x,y] 
+ */
 function findCorrectW(w, nearestNeighbor, findBisector){
     
     var startingBisector = findBisector(w, nearestNeighbor);        
@@ -348,7 +388,14 @@ function findCorrectW(w, nearestNeighbor, findBisector){
     }
 }
 
-// function that recursivly checks for orphaned besectors
+/**
+ * Function that recursivly checks for orphaned besectors
+ * 
+ * @param {Site} trapper 
+ * @param {Site} trapped 
+ * @param {boolean} goUp 
+ * @param {function} findBisector 
+ */
 function checkForOphans(trapper, trapped, goUp, findBisector){
     
     return trapped.bisectors.filter(bisector => {
@@ -370,12 +417,29 @@ function checkForOphans(trapper, trapped, goUp, findBisector){
     
 }
 
+/**
+ * Currys find bisector function with the current width, height
+ * 
+ * @param {function} callback 
+ * @param {number} width 
+ * @param {number} height
+ * @return {function} 
+ */
 function curryFindBisector(callback, width, height){
     return function(P1, P2){
         return callback(P1, P2, width, height);
     }
 }
 
+/**
+ * Generate L1 bisector between two sites
+ * 
+ * @param {Site} P1 
+ * @param {Site} P2 
+ * @param {number} width 
+ * @param {number} height
+ * @returns {bisector} 
+ */
 function findL1Bisector(P1, P2, width, height){
     
     
@@ -393,8 +457,11 @@ function findL1Bisector(P1, P2, width, height){
 
     let vertexes = [];
     let up = null;
-    
-    if(Math.abs(xDistance) > Math.abs(yDistance)){
+    if(Math.abs(xDistance) === Math.abs(yDistance)){
+        throw new Error("No square bisectors")
+    }
+
+    if(Math.abs(xDistance) >= Math.abs(yDistance)){
         vertexes = [
             [(P1.site[1] - intercetpt) / slope, P1.site[1]],
             [(P2.site[1] - intercetpt) / slope, P2.site[1]]
@@ -414,60 +481,95 @@ function findL1Bisector(P1, P2, width, height){
     let bisector = {sites:[P1, P2], up:up, points:[], intersections:[]};
 
     if(up){
-        let sortedVerts = vertexes.sort((a,b) => a[1] - b[1]);
-        bisector.points.unshift(
-            [sortedVerts[0][0], 0]
-        );
+        const sortedVerts = vertexes.sort((a,b) => a[1] - b[1]);
+
+        
+        bisector.points = [
+            [sortedVerts[0][0], 0],
+            ...sortedVerts,
+            [sortedVerts[1][0], height] 
+        ];
+        
     }
     else{
-        let sortedVerts = vertexes.sort((a,b) => a[0] - b[0]);            
-        bisector.points.unshift(
-            [0,sortedVerts[0][1]]    
-        );
-    }
-    
-    bisector.points.push(...vertexes);
-
-    if(up){
-        let sortedVerts = vertexes.sort((a,b) => a[1] - b[1]);
-        bisector.points.push(
-            [sortedVerts[1][0], height]
-        );
-    }
-    else{
-        let sortedVerts = vertexes.sort((a,b) => a[0] - b[0]);
-        bisector.points.push(
-            [width,sortedVerts[1][1]]    
-        );
+        const sortedVerts = vertexes.sort((a,b) => a[0] - b[0]);            
+        
+        bisector.points = [
+            [0,sortedVerts[0][1]],
+            ...sortedVerts,
+            [width,sortedVerts[1][1]]
+        ];
     }
 
+    //console.log(bisector.points.length);
     return bisector;
 }
 
-// clear out orphans when a new merge line is created
+/**
+ * Clear out orphans when a new merge line is created
+ * 
+ * @param {Site} orphanage 
+ * @param {Site} trapPoint
+ * @returns {Array<Bisector>} 
+ */
 function clearOutOrphans(orphanage, trapPoint){
     return orphanage.bisectors.filter(bisector => !isBisectorTrapped(trapPoint, bisector));
 }
 
+/**
+ * Finds other point across a bisector
+ * 
+ * @param {Bisector} bisector 
+ * @param {Site} hopFrom
+ * @returns {Site} 
+ */
 function findHopTo(bisector, hopFrom){
     return bisector.sites.find(e => e !== hopFrom);
 }
 
+
+/**
+ * Find L1 distance
+ * 
+ * @param {Array} P1 in form [x,y] 
+ * @param {Array} P2 in form [x,y]
+ * @returns {number}
+ */
 function distance(P1, P2){
     return Math.abs(P1[0] - P2[0]) + Math.abs(P1[1] - P2[1]);
 }
 
+/**
+ * Determine if bisector is trapped in a site's polygon
+ * Trapped is defined as all the points of a bisector being closer to the trap point than either if its own sites.
+ * 
+ * @param {Site} trapPoint 
+ * @param {Bisector} bisector
+ * @returns {boolean} 
+ */
 function isBisectorTrapped(trapPoint, bisector){
     return bisector.points.every(point => distance(trapPoint.site, point) < distance(bisector.sites[0].site, point) && distance(trapPoint.site, point) < distance(bisector.sites[1].site, point));
 }
 
-// find the highest or lowest point of a potential bisector.
+/**
+ * Find the highest or lowest point of a potential bisector.
+ * 
+ * @param {Bisector} bisector 
+ * @param {boolean} goUp 
+ */
 function getExtremePoint(bisector, goUp){
     return bisector.points.reduce((c,e)=>{
         return goUp ? Math.max(e[1],c) : Math.min(e[1],c);
     }, goUp ? -Infinity : Infinity);
 }
 
+/**
+ * Trim a bisector at a particular point, discarding the points lying within the other polygon
+ * 
+ * @param {Bisector} target 
+ * @param {Bisector} intersector 
+ * @param {Array} intersection in form [x,y] 
+ */
 function trimBisector(target, intersector, intersection){
     
     let polygonSite = intersector.sites.find(e => target.sites.find(d => d === e) === undefined);
@@ -489,6 +591,14 @@ function trimBisector(target, intersector, intersection){
 
 };
 
+/**
+ * Check to see if a bisector is traveling upward or downward with repect tot eh y axis
+ * 
+ * @param {Site} hopTo 
+ * @param {Site} hopFrom 
+ * @param {Site} site
+ * @returns {boolean} 
+ */
 function isNewBisectorUpward(hopTo, hopFrom, site){
     
     let slope = (hopTo.site[1] - site.site[1])/(hopTo.site[0] - site.site[0]);
@@ -499,6 +609,13 @@ function isNewBisectorUpward(hopTo, hopFrom, site){
     return isAboveLine;
 }
 
+/**
+ * Find intersection of two bisectors, if it exists
+ * 
+ * @param {Bisector} B1 
+ * @param {Bisector} B2
+ * @returns {Array or boolean} 
+ */
 function bisectorIntersection(B1, B2){
     if(B1 === B2){
         return false;
@@ -517,11 +634,18 @@ function bisectorIntersection(B1, B2){
     return false;
 }
 
-function segementIntersection(L1, L2, i, j){
+/**
+ * find intersection of two line segements, if it exists
+ * 
+ * @param {LineSegment} L1 - in form [[x,y],[x,y]] 
+ * @param {*} L2 - in form [[x,y],[x,y]]
+ * @returns {Array or boolean}
+ */
+function segementIntersection(L1, L2){
     
     var ua, ub, denom = (L2[1][1] - L2[0][1])*(L1[1][0] - L1[0][0]) - (L2[1][0] - L2[0][0])*(L1[1][1] - L1[0][1]);
     
-    // if denom is zero, that mean that both segemnts are verticle or horizontal, and we need to account for that.
+    // If denom is zero, that mean that both segemnts are verticle or horizontal, and we need to account for that.
     if (denom == 0) {
         return null;
     }
@@ -542,6 +666,12 @@ function segementIntersection(L1, L2, i, j){
 
 }
 
+/**
+ * Determine if two points are the same point
+ * 
+ * @param {Array} P1 - in form [x,y] 
+ * @param {Array} P2 - in form [x,y]
+ */
 function samePoint(P1, P2){
     return P1[0] === P2[0] && P1[1] === P2[1];
 }
