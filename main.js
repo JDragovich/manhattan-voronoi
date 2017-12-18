@@ -19,11 +19,21 @@ function randomNormal(sharpness){
 let euclideanCallback = function(a,b){ return Math.sqrt(Math.pow(a[0] - b[0],2) + Math.pow(a[1] - b[1],2)) };
 let manhattanCallback = function(a,b){ return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) };
 
-let raw = new Array(40).fill(0).map(e => [randomNormal(2) * width, randomNormal(2) * height]);
-//let raw = [[62.530666858000615,110.15574589200754],[76.73642547622488,342.0385804330675],[107.12234972277508,186.88826257322617],[111.39263316932984,372.4442865547021],[154.00095917916894,182.49617790597532],[177.9969663696,296.15268845721016],[211.17536846856405,356.37948357567507],[221.38107495521834,233.21436705300266],[266.96631965141427,118.91850702924395],[298.6358548847654,191.4053632598975]];
+//let raw = new Array(32).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
+//let raw = [[53,162],[61,185],[86,225],[95,164],[96,72],[98,267],[101,237],[105,217],[111,213],[118,117],[119,183],[136,267],[152,148],[167,276],[168,287],[183,69],[187,149],[193,225],[195,249],[220,119],[234,201],[239,215],[249,170],[268,306],[273,252],[279,173],[285,227],[308,273],[313,360],[319,43],[319,192],[360,196]];
+//let raw = [[72,120],[79,272],[100,165],[101,194],[113,75],[115,242],[115,203],[123,202],[134,163],[136,167],[136,319],[150,206],[155,122],[160,207],[181,80],[181,304],[185,146],[192,223],[195,204],[222,82],[225,75],[236,85],[256,41],[264,186],[267,283],[268,213],[296,125],[304,264],[308,121],[313,165],[318,287],[336,187]];
+let raw = [[29,194],[49,40],[51,343],[111,64],[122,352],[130,257],[133,136],[138,153],[138,214],[139,40],[144,270],[146,91],[159,313],[166,295],[184,144],[195,282],[196,231],[197,154],[202,301],[207,316],[212,287],[220,151],[221,104],[248,226],[252,185],[263,213],[272,247],[280,323],[282,248],[311,215],[312,234],[326,91]];
 let sites = raw.slice(0);
 console.log(JSON.stringify(sites.sort((a,b) => a[0] - b[0])));
 console.log(sites.length);
+document.getElementById("points").textContent = JSON.stringify(sites.sort((a,b) => {
+    if(a[0] !== b[0]){
+        return a[0] - b[0]
+    }
+    else{
+        return a[1] - b[1]
+    }
+}), null);
 
 let rawData = generateVoronoiPoints(sites ,width, height, manhattanCallback );
 let vectorPoints = generateL1Voronoi(sites ,width, height);
@@ -48,10 +58,12 @@ sites.forEach(e => {
 
 // draw svg shapes
 vectorPoints.forEach(site =>{
-    /*
+    
     site.bisectors.forEach(bisector => {
         var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'polyline'); //Create a path in SVG's namespace
         newElement.setAttribute("points", bisector.points.map(e => e.join(",")).join(" ")); //Set path's data
+        newElement.setAttribute("parents", bisector.sites.map(e => e.site.join(",")).join(" | "));
+        newElement.setAttribute("site", site.site.join(","));
         newElement.style.stroke = bisector.mergeLine ? getColor(bisector.mergeLine) : "#000"; //Set stroke colour
         newElement.style.fill = "none";
         newElement.style.strokeWidth = "1px"; //Set stroke width
@@ -67,14 +79,15 @@ vectorPoints.forEach(site =>{
         });
 
     });
-    */
-   
+    
+    /*
     var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'path'); //Create a path in SVG's namespace
     newElement.setAttribute("d", site.d); //Set path's data
     newElement.setAttribute("class", "polygon"); //Set path's data    
     newElement.style.stroke = "#000"; //Set stroke colour
     newElement.style.strokeWidth = "1px"; //Set stroke width
     svg.appendChild(newElement);
+    */
     /*
     var start = document.createElementNS("http://www.w3.org/2000/svg", 'circle'); //Create a path in SVG's namespace
     start.setAttribute("cx", site.polygonPoints[0][0]); //Set path's data

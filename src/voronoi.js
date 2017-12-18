@@ -57,7 +57,7 @@ function generateL1Voronoi(sitePoints,width,height){
 
     const findBisector = curryFindBisector(findL1Bisector, width, height);
     const graph = recursiveSplit(sites, findBisector, width, height);
-    console.log(graph);
+    //console.log(graph);
     return graph.map(site => {
         //console.log(site);
         site.polygonPoints = site.bisectors.reduce((total, bisector, index, bisectors)=>{
@@ -182,7 +182,7 @@ function recursiveSplit(splitArray, findBisector, width, height){
     // otherwise, determine te vertexes if its got two sites
     else if(splitArray.length === 2){
         let bisector = findBisector(...splitArray);
-        console.log(bisector);
+        //console.log(bisector);
         splitArray.forEach(e => { e.bisectors.push(bisector) });
         return splitArray;
     }
@@ -222,25 +222,40 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                         .map(e => {return {bisector:e, point:bisectorIntersection(currentBisector, e)}})
                         .filter(e => {
                             let hopTo = e.bisector.sites.find(d => d !== currentL);
-                            return e.point && (goUp ? isNewBisectorUpward(hopTo, currentL, currentR) : !isNewBisectorUpward(hopTo, currentL, currentR)) && !samePoint(e.point, currentCropPoint);
+                            return e.point && (goUp === isNewBisectorUpward(hopTo, currentL, currentR, goUp)) && !samePoint(e.point, currentCropPoint);
                         })
-                        .sort((a, b) => goUp ? a.point[1] - b.point[1] : b.point[1] - a.point[1]);
+                        .sort((a, b) => {
+                            if(samePoint(a.point,b.point)){
+                                console.log("swastika problem Left")
+                                console.log(angle(currentL.site, findHopTo(a.bisector, currentL).site), angle(currentL.site, findHopTo(b.bisector, currentL).site) )
+                                return angle(currentL.site, findHopTo(b.bisector, currentL).site) - angle(currentL.site, findHopTo(a.bisector, currentL).site)
+                            }
+                            return angle(currentL.site, findHopTo(b.bisector, currentL).site) - angle(currentL.site, findHopTo(a.bisector, currentL).site)                            
+                            //return goUp ? a.point[1] - b.point[1] : b.point[1] - a.point[1];
+                        });
     
     let cropRArray = currentR.bisectors
                         .map(e => {return {bisector:e, point:bisectorIntersection(currentBisector, e)}})
                         .filter(e => {
                             let hopTo = e.bisector.sites.find(d => d !== currentR);
-                            return e.point && (goUp ? isNewBisectorUpward(hopTo, currentR, currentL) : !isNewBisectorUpward(hopTo, currentR, currentL)) && !samePoint(e.point, currentCropPoint);
+                            return e.point && (goUp === isNewBisectorUpward(hopTo, currentR, currentL, goUp)) && !samePoint(e.point, currentCropPoint);
                         })
-                        .sort((a, b) => goUp ? a.point[1] - b.point[1] : b.point[1] - a.point[1]);
+                        .sort((a, b) => {
+                            if(samePoint(a.point,b.point)){
+                                console.log("swastika problem Right")
+                                console.log(angle(currentR.site, findHopTo(b.bisector, currentR).site), angle(currentR.site, findHopTo(a.bisector, currentR).site) )
+                                return angle(currentR.site, findHopTo(a.bisector, currentR).site) - angle(currentR.site, findHopTo(b.bisector, currentR).site)
+                            }
+                            return angle(currentR.site, findHopTo(a.bisector, currentR).site) - angle(currentR.site, findHopTo(b.bisector, currentR).site)                            
+                            //return goUp ? a.point[1] - b.point[1] : b.point[1] - a.point[1];
+                        });
 
     let cropL = cropLArray.length > 0 && cropLArray[0] !== currentBisector ? cropLArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
     let cropR = cropRArray.length > 0 && cropRArray[0] !== currentBisector ? cropRArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
-
+    console.log(cropLArray, cropRArray, goUp, currentL.site, currentR.site);                    
     // If no intersection, we're done.
     if(
-        (!cropL.bisector && !cropR.bisector) ||
-        (cropL.point[0] === cropR.point[0] && cropL.point[1] === cropR.point[1])
+        (!cropL.bisector && !cropR.bisector)
     ){
         // If the final merge bisector is horizontal, check to see if there are orphans 
         let leftOrphan = checkForOphans(currentR, currentL, goUp, findBisector); 
@@ -285,7 +300,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         return mergeArray;
     }
 
-    if(Math.abs(cropR.point[1] - currentCropPoint[1]) < Math.abs(cropL.point[1] - currentCropPoint[1]) && Math.abs(cropR.point[1] - currentCropPoint[1]) !== 0){
+    if(Math.abs(cropR.point[1] - currentCropPoint[1]) < Math.abs(cropL.point[1] - currentCropPoint[1])){
         trimBisector(cropR.bisector, currentBisector, cropR.point);
         trimBisector(currentBisector, cropR.bisector, cropR.point);
         currentBisector.intersections.push(cropR.point);
@@ -302,11 +317,34 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         currentCropPoint = cropL.point;                                       
     }
     else{
-        throw new Error("no equal crop points");
+        console.log("double moving on...");
+        trimBisector(cropR.bisector, currentBisector, cropR.point);
+        trimBisector(currentBisector, cropR.bisector, cropR.point);
+        currentBisector.intersections.push(cropR.point);
+        crossedBorder = cropR.bisector;
+        currentR = cropR.bisector.sites.find(e => e !== currentR);
+        currentCropPoint = cropR.point;
+
+        trimBisector(cropL.bisector, currentBisector, cropL.point);
+        trimBisector(currentBisector, cropL.bisector, cropL.point);
+        currentBisector.intersections.push(cropL.point);
+        crossedBorder = cropL.bisector;
+        currentL = cropL.bisector.sites.find(e => e !== currentL);
+        currentCropPoint = cropL.point;
     }
 
     return walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, goUp, crossedBorder, mergeArray, findBisector);            
     
+}
+
+function angle(P1, P2){
+    let angle = Math.atan2(P2[1] - P1[1], P2[0] - P1[0]);
+
+    if(angle < 0){
+        angle = Math.PI + Math.PI + angle; 
+    }
+
+    return angle;
 }
 
 /**
@@ -457,10 +495,31 @@ function findL1Bisector(P1, P2, width, height){
 
     let vertexes = [];
     let up = null;
+    
     if(Math.abs(xDistance) === Math.abs(yDistance)){
-        throw new Error("No square bisectors")
+        console.warn("square bisector");
+        //throw new Error("No square bisectors")
+    }
+    
+
+    
+    if(Math.abs(xDistance) === 0){
+        vertexes = [
+            [0, midpoint[1]],
+            [width, midpoint[1]]
+        ];
+
+        return {sites:[P1, P2], up:false, points:vertexes, intersections:[]};
     }
 
+    if(Math.abs(yDistance) === 0){
+        vertexes = [
+            [midpoint[0], 0],
+            [midpoint[0], height]
+        ];
+
+        return {sites:[P1, P2], up:true, points:vertexes, intersections:[]};
+    }
     if(Math.abs(xDistance) >= Math.abs(yDistance)){
         vertexes = [
             [(P1.site[1] - intercetpt) / slope, P1.site[1]],
@@ -478,7 +537,7 @@ function findL1Bisector(P1, P2, width, height){
         up = false;
     }
 
-    let bisector = {sites:[P1, P2], up:up, points:[], intersections:[]};
+    let bisector = {sites:[P1, P2], up:up, points:[], intersections:[]};    
 
     if(up){
         const sortedVerts = vertexes.sort((a,b) => a[1] - b[1]);
@@ -488,7 +547,7 @@ function findL1Bisector(P1, P2, width, height){
             [sortedVerts[0][0], 0],
             ...sortedVerts,
             [sortedVerts[1][0], height] 
-        ];
+        ].sort((a,b) => a[1] - b[1]);
         
     }
     else{
@@ -498,7 +557,7 @@ function findL1Bisector(P1, P2, width, height){
             [0,sortedVerts[0][1]],
             ...sortedVerts,
             [width,sortedVerts[1][1]]
-        ];
+        ].sort((a,b) => a[0] - b[0]);
     }
 
     //console.log(bisector.points.length);
@@ -548,7 +607,7 @@ function distance(P1, P2){
  * @returns {boolean} 
  */
 function isBisectorTrapped(trapPoint, bisector){
-    return bisector.points.every(point => distance(trapPoint.site, point) < distance(bisector.sites[0].site, point) && distance(trapPoint.site, point) < distance(bisector.sites[1].site, point));
+    return bisector.points.every(point => distance(trapPoint.site, point) <= distance(bisector.sites[0].site, point) && distance(trapPoint.site, point) <= distance(bisector.sites[1].site, point));
 }
 
 /**
@@ -599,10 +658,17 @@ function trimBisector(target, intersector, intersection){
  * @param {Site} site
  * @returns {boolean} 
  */
-function isNewBisectorUpward(hopTo, hopFrom, site){
+function isNewBisectorUpward(hopTo, hopFrom, site, goUp){
     
     let slope = (hopTo.site[1] - site.site[1])/(hopTo.site[0] - site.site[0]);
     let intercept = hopTo.site[1] - (slope * hopTo.site[0]);
+
+    // this needs to be here to account for bisectors 
+    if(Math.abs(slope) === Infinity){
+        console.log("verticle slope :/");
+        console.log( "Hop From:",hopFrom.site, "Hop to:", hopTo.site, "site:",site.site);
+        return site.site[1] > hopFrom.site[1];
+    }
 
     let isAboveLine = hopFrom.site[1] > (slope * hopFrom.site[0]) + intercept;
     
@@ -620,7 +686,7 @@ function bisectorIntersection(B1, B2){
     if(B1 === B2){
         return false;
     }
-
+    //console.log(segementIntersection([[202.5,0], [202.5,289]],[[400,288.5], [148,288.5]]));
     for(let i = 0; i < B1.points.length - 1; i++){
         for(let j = 0; j < B2.points.length - 1; j++){
             let intersect = segementIntersection([B1.points[i], B1.points[i+1]], [B2.points[j], B2.points[j+1]], i, j);

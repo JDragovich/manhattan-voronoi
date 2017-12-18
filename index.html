@@ -6,9 +6,21 @@
         <link rel="stylesheet" href="styles.css">
     </head>
     <body>
-        <canvas id="diagram"></canvas>
-        <svg id="svg" ></svg>
-        <pre id="main"></pre>
+        <h1>Generating L1 Voronoi Diagrams</h1>
+        <p>This is a demonstartion of my attempt at implemting Wong et al's Algroithm for generating L1 Voronoi diagrams. This is a work in progress and teh method is not perfect yet. Right now I'm working through edge cases and I have not yet solved handling bisectors where the points are on a square.</p>
+        <p>Refresh this page ot generate another diagram</p>
+        <div class="container">
+            <div>
+                <h2>Naive Algorithm</h2>
+                <canvas id="diagram"></canvas>                    
+            </div>
+            <div>
+                <h2>Wong et al. Algorithm</h2>
+                <svg id="svg"></svg>            
+            </div>
+        </div>
+        <h3>Points</h3>
+        <pre id="points"></pre>
         <script src="build/build.js"></script>        
     </body>
 </html>

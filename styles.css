@@ -5,3 +5,20 @@
 .polygon:hover{
     fill: #eee;
 }
+
+body{
+    max-width:1280px;
+    margin-right: auto;
+    margin-left: auto;
+    padding:0 100px;
+    font-family: sans-serif;
+}
+
+.container{
+    display:flex;
+    justify-content: space-between;
+}
+
+#points{
+    white-space: pre-wrap;    
+}
