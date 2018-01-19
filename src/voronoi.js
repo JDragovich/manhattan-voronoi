@@ -226,12 +226,18 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                         })
                         .sort((a, b) => {
                             if(samePoint(a.point,b.point)){
-                                console.log("swastika problem Left")
-                                console.log(angle(currentL.site, findHopTo(a.bisector, currentL).site), angle(currentL.site, findHopTo(b.bisector, currentL).site) )
+                                //console.log("corner problem Left")
+                                //console.log(angle(currentL.site, findHopTo(b.bisector, currentL).site), angle(currentL.site, findHopTo(a.bisector, currentL).site) )
                                 return angle(currentL.site, findHopTo(b.bisector, currentL).site) - angle(currentL.site, findHopTo(a.bisector, currentL).site)
                             }
                             return angle(currentL.site, findHopTo(b.bisector, currentL).site) - angle(currentL.site, findHopTo(a.bisector, currentL).site)                            
                             //return goUp ? a.point[1] - b.point[1] : b.point[1] - a.point[1];
+                        })
+                        .filter((e, i, candidates) => {
+                            let hopTo = findHopTo(e.bisector, currentL);
+                            let newMergeLine = findBisector(currentR, hopTo);
+                            trimBisector(newMergeLine, e.bisector, e.point);
+                            return candidates.every(d => !isBisectorTrapped(findHopTo(d.bisector, currentL), newMergeLine) || findHopTo(d.bisector, currentL) === hopTo);
                         });
     
     let cropRArray = currentR.bisectors
@@ -242,17 +248,23 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                         })
                         .sort((a, b) => {
                             if(samePoint(a.point,b.point)){
-                                console.log("swastika problem Right")
-                                console.log(angle(currentR.site, findHopTo(b.bisector, currentR).site), angle(currentR.site, findHopTo(a.bisector, currentR).site) )
+                                console.log("corner problem Right");
+                                //console.log(findHopTo(a.bisector,currentR),checkForOphans(currentL, findHopTo(a.bisector,currentR), goUp, findBisector), checkForOphans(currentL, findHopTo(b.bisector,currentR), goUp, findBisector))
                                 return angle(currentR.site, findHopTo(a.bisector, currentR).site) - angle(currentR.site, findHopTo(b.bisector, currentR).site)
                             }
                             return angle(currentR.site, findHopTo(a.bisector, currentR).site) - angle(currentR.site, findHopTo(b.bisector, currentR).site)                            
                             //return goUp ? a.point[1] - b.point[1] : b.point[1] - a.point[1];
+                        })
+                        .filter((e, i, candidates) => {
+                            let hopTo = findHopTo(e.bisector, currentR);
+                            let newMergeLine = findBisector(currentL, hopTo);
+                            trimBisector(newMergeLine, e.bisector, e.point);
+                            return candidates.every(d => !isBisectorTrapped(findHopTo(d.bisector, currentR), newMergeLine) || findHopTo(d.bisector, currentR) === hopTo);
                         });
 
     let cropL = cropLArray.length > 0 && cropLArray[0] !== currentBisector ? cropLArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
     let cropR = cropRArray.length > 0 && cropRArray[0] !== currentBisector ? cropRArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
-    console.log(cropLArray, cropRArray, goUp, currentL.site, currentR.site);                    
+    console.log(cropLArray, cropRArray, goUp, currentL.site, currentR.site, checkForOphans(currentR, currentL, goUp, findBisector), checkForOphans(currentL, currentR, goUp, findBisector));                    
     // If no intersection, we're done.
     if(
         (!cropL.bisector && !cropR.bisector)
@@ -498,7 +510,8 @@ function findL1Bisector(P1, P2, width, height){
     
     if(Math.abs(xDistance) === Math.abs(yDistance)){
         console.warn("square bisector");
-        //throw new Error("No square bisectors")
+
+        return {sites:[P1, P2], up:false, points:vertexes, intersections:[], compound:true};        
     }
     
 
@@ -509,7 +522,7 @@ function findL1Bisector(P1, P2, width, height){
             [width, midpoint[1]]
         ];
 
-        return {sites:[P1, P2], up:false, points:vertexes, intersections:[]};
+        return {sites:[P1, P2], up:false, points:vertexes, intersections:[], compound:false};
     }
 
     if(Math.abs(yDistance) === 0){
@@ -518,7 +531,7 @@ function findL1Bisector(P1, P2, width, height){
             [midpoint[0], height]
         ];
 
-        return {sites:[P1, P2], up:true, points:vertexes, intersections:[]};
+        return {sites:[P1, P2], up:true, points:vertexes, intersections:[], compound:false};
     }
     if(Math.abs(xDistance) >= Math.abs(yDistance)){
         vertexes = [
@@ -537,7 +550,7 @@ function findL1Bisector(P1, P2, width, height){
         up = false;
     }
 
-    let bisector = {sites:[P1, P2], up:up, points:[], intersections:[]};    
+    let bisector = {sites:[P1, P2], up:up, points:[], intersections:[], compound:false};    
 
     if(up){
         const sortedVerts = vertexes.sort((a,b) => a[1] - b[1]);
@@ -666,8 +679,8 @@ function isNewBisectorUpward(hopTo, hopFrom, site, goUp){
     // this needs to be here to account for bisectors 
     if(Math.abs(slope) === Infinity){
         console.log("verticle slope :/");
-        console.log( "Hop From:",hopFrom.site, "Hop to:", hopTo.site, "site:",site.site);
-        return site.site[1] > hopFrom.site[1];
+        console.log( "Hop From:",hopFrom.site, "Hop to:", hopTo.site, "site:",site.site, "is upward", site.site[1] < hopTo.site[1] );
+        return site.site[1] > hopTo.site[1];
     }
 
     let isAboveLine = hopFrom.site[1] > (slope * hopFrom.site[0]) + intercept;
