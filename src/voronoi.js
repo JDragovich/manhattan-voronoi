@@ -14,21 +14,11 @@ function generateVoronoiPoints(points, width, height, distanceCallback){
 
     let imageData = new Array(width * height).fill(0).map((point, index) => {
         let coordinate = [index % height , Math.ceil(index / height)];
-        let closest = colors.reduce((c,e) => {
+        let closest = colors.map( e => { return {color:e, distance:distanceCallback(e.point, coordinate)}})
+                            .map( (e, i, array) => {return {color:e.color, distance:e.distance, dup:array.some( d => d.distance === e.distance && d !== e)}})
+                            .sort( (a, b) => a.distance - b.distance )
 
-            if(Array.isArray(c)){
-                return c.every(d => distanceCallback(d.point, coordinate) < distanceCallback(e.point, coordinate) ) ? c : e;
-            }
-            else if(distanceCallback(c.point, coordinate) === distanceCallback(e.point, coordinate)){
-                return [c,e];
-            }
-            else{
-                return distanceCallback(c.point, coordinate) < distanceCallback(e.point, coordinate) ? c : e;
-            }
-
-        }, {point:[Infinity,Infinity]});
-
-        return Array.isArray(closest) ? [0,0,0] : closest.color;
+        return closest[0].dup ? [0,0,0] : closest[0].color.color;
     });
     
     return imageData;
@@ -264,7 +254,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
 
     let cropL = cropLArray.length > 0 && cropLArray[0] !== currentBisector ? cropLArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
     let cropR = cropRArray.length > 0 && cropRArray[0] !== currentBisector ? cropRArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
-    console.log(cropLArray, cropRArray, goUp, currentL.site, currentR.site, checkForOphans(currentR, currentL, goUp, findBisector), checkForOphans(currentL, currentR, goUp, findBisector));                    
+    // console.log(cropLArray, cropRArray, goUp, currentL.site, currentR.site, checkForOphans(currentR, currentL, goUp, findBisector), checkForOphans(currentL, currentR, goUp, findBisector));                    
     // If no intersection, we're done.
     if(
         (!cropL.bisector && !cropR.bisector)
@@ -510,8 +500,9 @@ function findL1Bisector(P1, P2, width, height){
     
     if(Math.abs(xDistance) === Math.abs(yDistance)){
         console.warn("square bisector");
+        
 
-        return {sites:[P1, P2], up:false, points:vertexes, intersections:[], compound:true};        
+        //return {sites:[P1, P2], up:true, points:vertexes, intersections:[], compound:true};        
     }
     
 
@@ -643,22 +634,27 @@ function getExtremePoint(bisector, goUp){
  * @param {Array} intersection in form [x,y] 
  */
 function trimBisector(target, intersector, intersection){
+
+    let newPoints = target.points.reduce((c, e, i, array)=> {
+        if(i + 1 >= array.length){
+            return c;
+        }
+        //console.log(array[i+1], array, i);
+        if(distance(e, intersection) + distance(array[i+1], intersection) === distance(e, array[i+1])){
+            return [...c, e, intersection];
+        }
+        else{
+            return [...c, e];
+        }
+    },[]);
+
+    // add the last one
+    newPoints = [...newPoints, target.points[target.points.length - 1]];
     
     let polygonSite = intersector.sites.find(e => target.sites.find(d => d === e) === undefined);
 
-    let newPoints = target.points.filter(e => {
-        return distance(e, target.sites[0].site) < distance(e, polygonSite.site) && distance(e, target.sites[1].site) < distance(e, polygonSite.site);
-    });
-
-    newPoints.push(intersection);
-
-    target.points = newPoints.sort((a,b) => {
-        if(target.up){
-            return a[1] - b[1];
-        }
-        else{
-            return a[0] - b[0];
-        }
+    target.points = newPoints.filter(e => {
+        return distance(e, target.sites[0].site) <= distance(e, polygonSite.site) && distance(e, target.sites[1].site) <= distance(e, polygonSite.site);
     });
 
 };
