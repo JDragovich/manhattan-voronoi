@@ -19,13 +19,13 @@ function randomNormal(sharpness){
 let euclideanCallback = function(a,b){ return Math.sqrt(Math.pow(a[0] - b[0],2) + Math.pow(a[1] - b[1],2)) };
 let manhattanCallback = function(a,b){ return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) };
 
-let raw = new Array(32).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
+//let raw = new Array(32).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
 //let raw = new Array(32).fill(0).map(e => [randomNormal(2) * width, randomNormal(2) * height]);
 //let raw = [[100,100],[175,175],[225,225],[300,300]];
 //let raw = [[53,162],[61,185],[86,225],[95,164],[96,72],[98,267],[101,237],[105,217],[111,213],[118,117],[119,183],[136,267],[152,148],[167,276],[168,287],[183,69],[187,149],[193,225],[195,249],[220,119],[234,201],[239,215],[249,170],[268,306],[273,252],[279,173],[285,227],[308,273],[313,360],[319,43],[319,192],[360,196]];
 //let raw = [[72,120],[79,272],[100,165],[101,194],[113,75],[115,242],[115,203],[123,202],[134,163],[136,167],[136,319],[150,206],[155,122],[160,207],[181,80],[181,304],[185,146],[192,223],[195,204],[222,82],[225,75],[236,85],[256,41],[264,186],[267,283],[268,213],[296,125],[304,264],[308,121],[313,165],[318,287],[336,187]];
-//let raw = [[51,275],[105,130],[114,311],[115,180],[135,313],[146,336],[152,317],[155,194],[160,178],[163,210],[170,196],[172,215],[179,231],[180,107],[196,144],[201,259],[211,309],[222,237],[226,200],[235,203],[239,218],[241,335],[244,303],[257,119],[267,278],[272,202],[275,38],[281,310],[302,286],[323,136],[373,361],[378,105]];
-let sites = raw.slice(0);
+let raw = [[35,272],[37,325],[75,206],[77,81],[108,197],[115,200],[120,147],[132,321],[137,161],[152,174],[154,187],[166,339],[173,94],[189,288],[192,232],[206,365],[232,288],[247,191],[252,153],[254,357],[268,114],[271,172],[275,253],[309,237],[314,233],[317,169],[322,318],[336,210],[344,160],[375,152],[380,129],[380,327]];
+let sites = raw.slice(16);
 console.log(JSON.stringify(sites.sort((a,b) => a[0] - b[0])));
 console.log(sites.length);
 document.getElementById("points").textContent = JSON.stringify(sites.sort((a,b) => {
@@ -60,8 +60,14 @@ sites.forEach(e => {
 
 // draw svg shapes
 vectorPoints.forEach(site =>{
+
+    let filteredBisectors = site.bisectors.map(e => {
+        return !e.compound ?
+               e :
+               e.points.find(d => d.site === site);
+    })
     
-    site.bisectors.forEach(bisector => {
+    filteredBisectors.forEach(bisector => {
         var newElement = document.createElementNS("http://www.w3.org/2000/svg", 'polyline'); //Create a path in SVG's namespace
         newElement.setAttribute("points", bisector.points.map(e => e.join(",")).join(" ")); //Set path's data
         newElement.setAttribute("parents", bisector.sites.map(e => e.site.join(",")).join(" | "));

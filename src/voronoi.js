@@ -50,7 +50,14 @@ function generateL1Voronoi(sitePoints,width,height){
     //console.log(graph);
     return graph.map(site => {
         //console.log(site);
-        site.polygonPoints = site.bisectors.reduce((total, bisector, index, bisectors)=>{
+
+        let filteredBisectors = site.bisectors.map(e => {
+            return !e.compound ?
+                   e :
+                   e.points.find(d => d.site === site);
+        })
+
+        site.polygonPoints = filteredBisectors.reduce((total, bisector, index, bisectors)=>{
 
             if(index === 0){
 
@@ -209,14 +216,14 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
     }
     
     let cropLArray = currentL.bisectors
-                        .map(e => {return {bisector:e, point:bisectorIntersection(currentBisector, e)}})
+                        .map(e => {return {bisector:e, point:bisectorIntersection(currentBisector, e, currentCropPoint)}})
                         .filter(e => {
                             let hopTo = e.bisector.sites.find(d => d !== currentL);
                             return e.point && (goUp === isNewBisectorUpward(hopTo, currentL, currentR, goUp)) && !samePoint(e.point, currentCropPoint);
                         })
                         .sort((a, b) => {
                             if(samePoint(a.point,b.point)){
-                                //console.log("corner problem Left")
+                                console.log("corner problem Left")
                                 //console.log(angle(currentL.site, findHopTo(b.bisector, currentL).site), angle(currentL.site, findHopTo(a.bisector, currentL).site) )
                                 return angle(currentL.site, findHopTo(b.bisector, currentL).site) - angle(currentL.site, findHopTo(a.bisector, currentL).site)
                             }
@@ -231,7 +238,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                         });
     
     let cropRArray = currentR.bisectors
-                        .map(e => {return {bisector:e, point:bisectorIntersection(currentBisector, e)}})
+                        .map(e => {return {bisector:e, point:bisectorIntersection(currentBisector, e, currentCropPoint)}})
                         .filter(e => {
                             let hopTo = e.bisector.sites.find(d => d !== currentR);
                             return e.point && (goUp === isNewBisectorUpward(hopTo, currentR, currentL, goUp)) && !samePoint(e.point, currentCropPoint);
@@ -366,10 +373,10 @@ function determineStartingBisector(w, nearestNeighbor, width, lastIntersect = nu
         lastIntersect = w.site;
     }
 
-    let zline = {points:[w.site,z]};
+    let zline = {points:[w.site,z], compound:false};
 
     let intersection = nearestNeighbor.bisectors.map(bisector => {
-        return {point:bisectorIntersection(zline,bisector), bisector:bisector}
+        return {point:bisectorIntersection(zline,bisector, w.site), bisector:bisector}
     }).find(intersection => intersection.point);
     
     if(intersection && distance(w.site, intersection.point) > distance(nearestNeighbor.site, intersection.point)){
@@ -498,11 +505,45 @@ function findL1Bisector(P1, P2, width, height){
     let vertexes = [];
     let up = null;
     
+    // special case 
     if(Math.abs(xDistance) === Math.abs(yDistance)){
         console.warn("square bisector");
         
+        let internalPoints = [
+            [(P1.site[1] - intercetpt) / slope, P1.site[1]],
+            [(P2.site[1] - intercetpt) / slope, P2.site[1]]
+        ];
 
-        //return {sites:[P1, P2], up:true, points:vertexes, intersections:[], compound:true};        
+        let byHeight = [P1,P2].sort((a,b) => a.site[1] - b.site[1]);
+        let sortedVerts = internalPoints.sort((a,b) => a[1] - b[1]);
+        
+        vertexes = [
+            {
+                site:byHeight[0],
+                sites:[P1, P2],
+                points:[
+                    [sortedVerts[0][0],0],
+                    ...sortedVerts,
+                    [slope === 1 ? 0 : width, sortedVerts[1][1]]
+                ],
+                compound:false,
+                intersections:[]
+            },
+            {
+                site:byHeight[1],
+                sites:[P1, P2],
+                points:[
+                    [slope === 1 ? width : 0, sortedVerts[0][1]],
+                    ...sortedVerts,
+                    [sortedVerts[1][0], height]
+                ],
+                compound:false,
+                intersections:[]
+            }
+        ];
+
+
+        return {sites:[P1, P2], up:true, points:vertexes, intersections:[], compound:true};        
     }
     
 
@@ -524,7 +565,7 @@ function findL1Bisector(P1, P2, width, height){
 
         return {sites:[P1, P2], up:true, points:vertexes, intersections:[], compound:false};
     }
-    if(Math.abs(xDistance) >= Math.abs(yDistance)){
+    if(Math.abs(xDistance) > Math.abs(yDistance)){
         vertexes = [
             [(P1.site[1] - intercetpt) / slope, P1.site[1]],
             [(P2.site[1] - intercetpt) / slope, P2.site[1]]
@@ -611,7 +652,12 @@ function distance(P1, P2){
  * @returns {boolean} 
  */
 function isBisectorTrapped(trapPoint, bisector){
-    return bisector.points.every(point => distance(trapPoint.site, point) <= distance(bisector.sites[0].site, point) && distance(trapPoint.site, point) <= distance(bisector.sites[1].site, point));
+    if(!bisector.compound){
+        return bisector.points.every(point => distance(trapPoint.site, point) <= distance(bisector.sites[0].site, point) && distance(trapPoint.site, point) <= distance(bisector.sites[1].site, point));    
+    }
+    else{
+        return isBisectorTrapped(trapPoint, bisector.points[0]) && isBisectorTrapped(trapPoint, bisector.points[1]);
+    }
 }
 
 /**
@@ -621,9 +667,19 @@ function isBisectorTrapped(trapPoint, bisector){
  * @param {boolean} goUp 
  */
 function getExtremePoint(bisector, goUp){
-    return bisector.points.reduce((c,e)=>{
-        return goUp ? Math.max(e[1],c) : Math.min(e[1],c);
-    }, goUp ? -Infinity : Infinity);
+    if(!bisector.compound){
+        return bisector.points.reduce((c,e)=>{
+            return goUp ? Math.max(e[1],c) : Math.min(e[1],c);
+        }, goUp ? -Infinity : Infinity);
+    }
+    else{
+        return bisector.points.map(e => {
+            return getExtremePoint(e, goUp);        
+        })
+        .sort((a,b) => {
+            return goUp ? a[1] - b[1] : b[1] - a[1];
+        });
+    }
 }
 
 /**
@@ -633,29 +689,51 @@ function getExtremePoint(bisector, goUp){
  * @param {Bisector} intersector 
  * @param {Array} intersection in form [x,y] 
  */
-function trimBisector(target, intersector, intersection){
+function trimBisector(target, intersector){
 
-    let newPoints = target.points.reduce((c, e, i, array)=> {
-        if(i + 1 >= array.length){
-            return c;
-        }
-        //console.log(array[i+1], array, i);
-        if(distance(e, intersection) + distance(array[i+1], intersection) === distance(e, array[i+1])){
-            return [...c, e, intersection];
-        }
-        else{
-            return [...c, e];
-        }
-    },[]);
+    if(!target.compound && !intersector.compound){
 
-    // add the last one
-    newPoints = [...newPoints, target.points[target.points.length - 1]];
+        let intersection = bisectorIntersection(target, intersector);
+
+        let newPoints = target.points.reduce((c, e, i, array)=> {
+            if(i + 1 >= array.length){
+                return c;
+            }
+            //console.log(array[i+1], array, i);
+            if(distance(e, intersection) + distance(array[i+1], intersection) === distance(e, array[i+1])){
+                return [...c, e, intersection];
+            }
+            else{
+                return [...c, e];
+            }
+        },[]);
     
-    let polygonSite = intersector.sites.find(e => target.sites.find(d => d === e) === undefined);
-
-    target.points = newPoints.filter(e => {
-        return distance(e, target.sites[0].site) <= distance(e, polygonSite.site) && distance(e, target.sites[1].site) <= distance(e, polygonSite.site);
-    });
+        // add the last one
+        newPoints = [...newPoints, target.points[target.points.length - 1]];
+        
+        let polygonSite = intersector.sites.find(e => target.sites.find(d => d === e) === undefined);
+    
+        target.points = newPoints.filter(e => {
+            return distance(e, target.sites[0].site) <= distance(e, polygonSite.site) || distance(e, target.sites[1].site) <= distance(e, polygonSite.site);
+        });
+    }
+    else if(!target.compound && intersector.compound){
+        console.log("intersector compound", target, intersector);
+        trimBisector(target, intersector.points[0]);
+        trimBisector(target, intersector.points[1]);        
+    }
+    else if(target.compound && !intersector.compound){
+        console.log("target compound", target, intersector);        
+        trimBisector(target.points[0], intersector);
+        trimBisector(target.points[1], intersector);
+    }
+    else{
+        console.log("both compound", target, intersector);
+        trimBisector(target.points[0], intersector[0]);
+        trimBisector(target.points[0], intersector[1]);
+        trimBisector(target.points[1], intersector[0]);
+        trimBisector(target.points[1], intersector[1]);
+    }
 
 };
 
@@ -691,20 +769,71 @@ function isNewBisectorUpward(hopTo, hopFrom, site, goUp){
  * @param {Bisector} B2
  * @returns {Array or boolean} 
  */
-function bisectorIntersection(B1, B2){
+function bisectorIntersection(B1, B2, anchor){
     if(B1 === B2){
         return false;
     }
-    //console.log(segementIntersection([[202.5,0], [202.5,289]],[[400,288.5], [148,288.5]]));
-    for(let i = 0; i < B1.points.length - 1; i++){
-        for(let j = 0; j < B2.points.length - 1; j++){
-            let intersect = segementIntersection([B1.points[i], B1.points[i+1]], [B2.points[j], B2.points[j+1]], i, j);
-
-            if(intersect){
-                return intersect;
+    // simple case, if they're both not compound
+    if(!B1.compound && !B2.compound){
+        console.log(B1, B2);
+        for(let i = 0; i < B1.points.length - 1; i++){
+            for(let j = 0; j < B2.points.length - 1; j++){
+                let intersect = segementIntersection([B1.points[i], B1.points[i+1]], [B2.points[j], B2.points[j+1]], i, j);
+    
+                if(intersect){
+                    return intersect;
+                }
             }
         }
     }
+    // if one is compound
+    else if(!B1.compound || !B2.compound){
+        let compound = [B1,B2].find(e => e.compound);
+        let notCompound = [B1,B2].find(e => !e.compound);
+
+        let intersections = compound.points.map(e => {
+            return bisectorIntersection(e,notCompound)
+        })
+        .filter(e => {
+            return e;
+        })
+        .sort((a,b) => {
+            return distance(a, anchor) - distance(b, anchor);
+        });
+
+        return intersections.length > 0 ? intersections[0] : false;
+    }
+    // if both are compound
+    else{
+
+        let intersections = B2.points.map(d => {
+
+            let innerIntersections = B1.points.map(e => {
+                return bisectorIntersection(e,d);
+            })
+            .filter(e => {
+                return e;
+            })
+            .sort((a,b) => {
+                return distance(a, anchor) - distance(b, anchor);
+            });
+    
+            return innerIntersections.length > 0 ? innerIntersections[0] : false;
+        })
+        .filter(e => {
+            return e.intersection;
+        })
+        .sort((a,b) => {
+            return distance(a, anchor) - distance(b, anchor);
+        });
+
+        return intersections.length > 0 ? intersections[0] : false;
+        
+    }
+
+
+
+    
 
     return false;
 }
