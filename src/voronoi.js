@@ -312,6 +312,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
     if(Math.abs(cropR.point[1] - currentCropPoint[1]) < Math.abs(cropL.point[1] - currentCropPoint[1])){
         trimBisector(cropR.bisector, currentBisector, cropR.point);
         trimBisector(currentBisector, cropR.bisector, cropR.point);
+        currentR.bisectors.filter(e => e.compound).forEach(d => trimBisector(d, currentBisector));
         currentBisector.intersections.push(cropR.point);
         crossedBorder = cropR.bisector;
         currentR = cropR.bisector.sites.find(e => e !== currentR);
@@ -320,6 +321,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
     else if(Math.abs(cropR.point[1] - currentCropPoint[1]) > Math.abs(cropL.point[1] - currentCropPoint[1])){
         trimBisector(cropL.bisector, currentBisector, cropL.point);
         trimBisector(currentBisector, cropL.bisector, cropL.point);
+        currentL.bisectors.filter(e => e.compound).forEach(d => trimBisector(d, currentBisector));        
         currentBisector.intersections.push(cropL.point);
         crossedBorder = cropL.bisector;
         currentL = cropL.bisector.sites.find(e => e !== currentL);
@@ -329,6 +331,9 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         console.log("double moving on...");
         trimBisector(cropR.bisector, currentBisector, cropR.point);
         trimBisector(currentBisector, cropR.bisector, cropR.point);
+        currentR.bisectors.filter(e => e.compound).forEach(d => trimBisector(d, currentBisector));        
+        currentL.bisectors.filter(e => e.compound).forEach(d => trimBisector(d, currentBisector));
+
         currentBisector.intersections.push(cropR.point);
         crossedBorder = cropR.bisector;
         currentR = cropR.bisector.sites.find(e => e !== currentR);
@@ -714,21 +719,21 @@ function trimBisector(target, intersector){
         let polygonSite = intersector.sites.find(e => target.sites.find(d => d === e) === undefined);
     
         target.points = newPoints.filter(e => {
-            return distance(e, target.sites[0].site) <= distance(e, polygonSite.site) || distance(e, target.sites[1].site) <= distance(e, polygonSite.site);
+            return (distance(e, target.sites[0].site) <= distance(e, polygonSite.site) && distance(e, target.sites[1].site) <= distance(e, polygonSite.site))
         });
     }
     else if(!target.compound && intersector.compound){
-        console.log("intersector compound", target, intersector);
+        //console.log("intersector compound", target, intersector);
         trimBisector(target, intersector.points[0]);
         trimBisector(target, intersector.points[1]);        
     }
     else if(target.compound && !intersector.compound){
-        console.log("target compound", target, intersector);        
+        //console.log("target compound", target, intersector);        
         trimBisector(target.points[0], intersector);
         trimBisector(target.points[1], intersector);
     }
     else{
-        console.log("both compound", target, intersector);
+        //console.log("both compound", target, intersector);
         trimBisector(target.points[0], intersector[0]);
         trimBisector(target.points[0], intersector[1]);
         trimBisector(target.points[1], intersector[0]);
@@ -752,8 +757,8 @@ function isNewBisectorUpward(hopTo, hopFrom, site, goUp){
 
     // this needs to be here to account for bisectors 
     if(Math.abs(slope) === Infinity){
-        console.log("verticle slope :/");
-        console.log( "Hop From:",hopFrom.site, "Hop to:", hopTo.site, "site:",site.site, "is upward", site.site[1] < hopTo.site[1] );
+        //console.log("verticle slope :/");
+        //console.log( "Hop From:",hopFrom.site, "Hop to:", hopTo.site, "site:",site.site, "is upward", site.site[1] < hopTo.site[1] );
         return site.site[1] > hopTo.site[1];
     }
 
@@ -775,7 +780,7 @@ function bisectorIntersection(B1, B2, anchor){
     }
     // simple case, if they're both not compound
     if(!B1.compound && !B2.compound){
-        console.log(B1, B2);
+        //console.log(B1, B2);
         for(let i = 0; i < B1.points.length - 1; i++){
             for(let j = 0; j < B2.points.length - 1; j++){
                 let intersect = segementIntersection([B1.points[i], B1.points[i+1]], [B2.points[j], B2.points[j+1]], i, j);
