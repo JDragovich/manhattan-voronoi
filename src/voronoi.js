@@ -524,7 +524,7 @@ function findL1Bisector(P1, P2, width, height){
                 points:[
                     [sortedVerts[0][0],0],
                     ...sortedVerts,
-                    [slope === 1 ? 0 : width, sortedVerts[1][1]]
+                    [slope === -1 ? 0 : width, sortedVerts[1][1]]
                 ],
                 compound:false,
                 intersections:[]
@@ -533,7 +533,7 @@ function findL1Bisector(P1, P2, width, height){
                 site:byHeight[1],
                 sites:[P1, P2],
                 points:[
-                    [slope === 1 ? width : 0, sortedVerts[0][1]],
+                    [slope === -1 ? width : 0, sortedVerts[0][1]],
                     ...sortedVerts,
                     [sortedVerts[1][0], height]
                 ],
