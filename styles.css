@@ -22,3 +22,11 @@ body{
 #points{
     white-space: pre-wrap;    
 }
+
+.site > text{
+    display: none;
+}
+
+.site:hover > text{
+    display: block;
+}
