@@ -157,9 +157,9 @@ function recursiveSplit(splitArray, findBisector, width, height){
         let initialR = startingInfo.nearestNeighbor;
         let initialL = startingInfo.w;
 
-        console.log(`starting ${R.length * 2} upstroke`);
+        console.log(`%c starting ${R.length * 2} upstroke`, "background:#133468; color:#FFFF");
         let upStrokeArray = walkMergeLine(initialR, initialL, initialBisector, [width,height], true, null, [], findBisector);
-        console.log(`starting ${R.length * 2} downstroke`);        
+        console.log(`%c starting ${R.length * 2} downstroke`, "background:#133468; color:#FFFF");        
         let downStrokeArray = walkMergeLine(initialR, initialL, initialBisector, [0,0], false, null, [], findBisector);
 
         // combine all teh merge arrays
@@ -231,6 +231,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                         })
                         .filter(e => {
                             let hopTo = e.bisector.sites.find(d => d !== currentL);
+                            console.log("left bisector", e);
                             //console.log(e.point, goUp, isNewBisectorUpward(hopTo, currentL, currentR, goUp), (!samePoint(e.point, currentCropPoint) || e.overrideSamePoint))
                             return e.point && 
                                    (goUp === isNewBisectorUpward(hopTo, currentL, currentR, goUp)) && 
@@ -250,7 +251,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                             let hopTo = findHopTo(e.bisector, currentL);
                             let newMergeLine = findBisector(currentR, hopTo);
                             trimBisector(newMergeLine, e.bisector, e.point);
-                            
+                            console.log("left", e, willMergeLineEscapeTheDesert(e,currentBisector,currentL,currentR,currentCropPoint, findBisector)); 
                             return candidates.every(d => !isBisectorTrapped(findHopTo(d.bisector, currentL), newMergeLine) || findHopTo(d.bisector, currentL) === hopTo) &&
                             willMergeLineEscapeTheDesert(e,currentBisector,currentL,currentR,currentCropPoint, findBisector);
                         });
@@ -266,6 +267,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                         })
                         .filter(e => {
                             let hopTo = e.bisector.sites.find(d => d !== currentR);
+                            //console.log("right bisector", e);
                             return e.point && 
                                    (goUp === isNewBisectorUpward(hopTo, currentR, currentL, goUp)) && 
                                    (!samePoint(e.point, currentCropPoint) || e.overrideSamePoint);
@@ -283,7 +285,9 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                             let hopTo = findHopTo(e.bisector, currentR);
                             let newMergeLine = findBisector(currentL, hopTo);
                             trimBisector(newMergeLine, e.bisector, e.point);
-                            
+                            if(currentBisector.compound){
+                                console.log("right", e, willMergeLineEscapeTheDesert(e,currentBisector,currentL,currentR,currentCropPoint, findBisector)); 
+                            }
                             return candidates.every(d => !isBisectorTrapped(findHopTo(d.bisector, currentR), newMergeLine) || findHopTo(d.bisector, currentR) === hopTo) &&
                             willMergeLineEscapeTheDesert(e,currentBisector,currentR,currentL,currentCropPoint, findBisector);
                         });
@@ -325,6 +329,9 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
 
             mergeArray.push(newMergeBisector);
 
+            currentR.bisectors.forEach(e => trimBisector(newMergeBisector, e));
+            hopTo.bisectors.forEach(e => trimBisector(newMergeBisector, e));
+
             return walkMergeLine(currentR, hopTo, newMergeBisector, currentCropPoint, goUp, crossedBorder, mergeArray, findBisector);
 
         }
@@ -341,7 +348,10 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
             currentL = findCorrectW(currentL, hopTo, findBisector);                        
             let newMergeBisector = findBisector(hopTo, currentL);
             
-            mergeArray.push(newMergeBisector);                        
+            mergeArray.push(newMergeBisector);
+            
+            hopTo.bisectors.forEach(e => trimBisector(newMergeBisector, e));
+            currentL.bisectors.forEach(e => trimBisector(newMergeBisector, e));
 
             return walkMergeLine(hopTo, currentL, newMergeBisector, currentCropPoint, goUp, crossedBorder, mergeArray, findBisector);
         }
@@ -400,31 +410,39 @@ function willMergeLineEscapeTheDesert(crossedBorder, currentMergeLine, currentSi
 
     // first off, if the crossed border is not compound, the meger line will secape the desert
     if(!crossedBorder.bisector.compound){
+        //console.log('crossed border is not compound');
         return true;
     }
     // also if it is compound, but the merge line crosses both branches, then it will escape the desert
     else if(
-        crossedBorder.bisector.points.every(e => bisectorIntersection(e,currentMergeLine))
+        crossedBorder.bisector.points.every(e => bisectorIntersection(e,currentMergeLine, currentCropPoint))
     ){
-        console.log('crossed both borders');
+        //console.log('crossed both borders');
         return true;
     }
     // however if we start in the desert and cross a border, we know it escapes
     // TODO: need to figure out how to account for a compount mergeline...
     else if(
-        currentMergeLine.points.some(e => distance(e, hopTo.site) < distance(e,currentSide.site))
+        currentMergeLine.points.some(e => distance(e, hopTo.site) < distance(e,currentSide.site)) 
     ){
+        return true;
+    }
+    else if(
+        currentMergeLine.compound &&
+        currentMergeLine.points.some(d => d.points.some(e => distance(e, hopTo.site) < distance(e,currentSide.site)))
+    ){    
         return true;
     }
     
     // if all else fails, determine if the merge line would cross into anoth polygo if it were to continue
     else{
+        //console.log("checking to see if it will enter another polycgon")
         let newMergeLine = findBisector(otherside, hopTo);
         trimBisector(newMergeLine, crossedBorder.bisector, crossedBorder.point);
         let rightIntersections = hopTo.bisectors.some(d => bisectorIntersection(newMergeLine, d, currentCropPoint) && d !== crossedBorder.bisector);
-        let leftIntersections = otherside.bisectors.some(d => bisectorIntersection(newMergeLine, d, currentCropPoint) && d !== crossedBorder.bisector);
-        console.log(rightIntersections, leftIntersections)
-        return rightIntersections || leftIntersections;
+        //let leftIntersections = otherside.bisectors.some(d => bisectorIntersection(newMergeLine, d, currentCropPoint) && d !== crossedBorder.bisector);
+        //console.log("home intersections",rightIntersections, "otherside intersections",leftIntersections)
+        return rightIntersections //|| leftIntersections;
     }
 }
 
@@ -470,8 +488,29 @@ function determineStartingBisector(w, nearestNeighbor, width, lastIntersect = nu
     .sort((a,b) => a.point[0] - b.point[0]);
 
     let intersection = intersections.length > 0 ? intersections[0] : null;
+    
+    // need to check if it gets trapped in a desert 
+    let willEscape = true;
 
-    if(intersection && distance(w.site, intersection.point) > distance(nearestNeighbor.site, intersection.point)){
+    if(intersection && intersection.bisector.compound){
+        console.log(intersection.bisector);
+        
+        willEscape = willMergeLineEscapeTheDesert(
+            intersection,
+            findBisector(w, nearestNeighbor),
+            nearestNeighbor,
+            w,
+            intersection.point,
+            findBisector
+        );
+    }
+
+
+    if(
+        intersection && 
+        distance(w.site, intersection.point) > distance(nearestNeighbor.site, intersection.point) &&
+        willEscape
+    ){
         var startingBisector = findBisector(w, nearestNeighbor);
         return {
             startingBisector: startingBisector,
@@ -480,7 +519,13 @@ function determineStartingBisector(w, nearestNeighbor, width, lastIntersect = nu
             startingIntersection: intersection.point ? intersection.point : w.site
         };
     }
-    else if(intersection && distance(w.site, intersection.point) < distance(nearestNeighbor.site, intersection.point) && intersection.point[0] > lastIntersect[0] ){
+    else if(
+        intersection && 
+        distance(w.site, intersection.point) < distance(nearestNeighbor.site, intersection.point) && 
+        intersection.point[0] > lastIntersect[0] &&
+        willEscape
+    ){
+        console.log("less than", intersection.point[0], lastIntersect[0]);
         let nextR = intersection.bisector.sites.find(e => e !== nearestNeighbor);
         return determineStartingBisector(w, nextR, width, intersection.point, findBisector);
     }
@@ -810,10 +855,11 @@ function trimBisector(target, intersector, passedIntersection, backtrim){
         // add the last one
         newPoints = [...newPoints, target.points[target.points.length - 1]];
         
-        let polygonSite = intersector.sites.find(e => target.sites.find(d => d === e) === undefined);
         target.intersections.push(intersection)
         target.points = newPoints.filter(e => {
-            return (distance(e, target.sites[0].site) <= distance(e, polygonSite.site) || distance(e, target.sites[1].site) <= distance(e, polygonSite.site)) || samePoint(e, intersection)
+            return (distance(e, target.sites[0].site) <= distance(e, intersector.sites[0].site) && distance(e, target.sites[1].site) <= distance(e, intersector.sites[0].site)) 
+            && (distance(e, target.sites[0].site) <= distance(e, intersector.sites[1].site) && distance(e, target.sites[1].site) <= distance(e, intersector.sites[1].site)) 
+            //|| samePoint(e, intersection)
         });
     }
     else if(!target.compound && intersector.compound){
@@ -920,9 +966,10 @@ function bisectorIntersection(B1, B2, anchor){
             return innerIntersections.length > 0 ? innerIntersections[0] : false;
         })
         .filter(e => {
-            return e.intersection;
+            return e;
         })
         .sort((a,b) => {
+            console.log("a", a, "b", b, "anchor", anchor);
             return distance(a, anchor) - distance(b, anchor);
         });
 
