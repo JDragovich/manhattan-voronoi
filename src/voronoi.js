@@ -318,6 +318,8 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         !cropL.bisector &&
         !cropR.bisector
     ){
+        currentR.bisectors.forEach(e => trimBisector(e, currentBisector));
+        currentL.bisectors.forEach(e => trimBisector(e, currentBisector));
         return mergeArray;            
     }
     
@@ -342,6 +344,9 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
             currentR.bisectors.forEach(e => trimBisector(newMergeBisector, e));
             hopTo.bisectors.forEach(e => trimBisector(newMergeBisector, e));
 
+            currentR.bisectors.forEach(e => trimBisector(e, currentBisector));
+            currentL.bisectors.forEach(e => trimBisector(e, currentBisector));
+
             return walkMergeLine(currentR, hopTo, newMergeBisector, currentCropPoint, goUp, currentBisector, mergeArray, findBisector);
 
         }
@@ -361,8 +366,11 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
             
             mergeArray.push(newMergeBisector);
             
-            hopTo.bisectors.forEach(e => trimBisector(newMergeBisector, e));
             currentL.bisectors.forEach(e => trimBisector(newMergeBisector, e));
+            hopTo.bisectors.forEach(e => trimBisector(newMergeBisector, e));
+
+            currentR.bisectors.forEach(e => trimBisector(e, currentBisector));
+            currentL.bisectors.forEach(e => trimBisector(e, currentBisector));
 
             return walkMergeLine(hopTo, currentL, newMergeBisector, currentCropPoint, goUp, currentBisector, mergeArray, findBisector);
         }
@@ -373,7 +381,11 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         //console.log('right first', cropR, currentBisector);
         trimBisector(currentBisector, cropR.bisector, cropR.point);
         trimBisector(cropR.bisector, currentBisector, cropR.point);
-        currentR.bisectors.filter(e => e.compound).forEach(d => trimBisector(d, currentBisector));
+        currentR.bisectors.filter(filterByDirection(goUp,currentR))
+                          .forEach(d => trimBisector(d, currentBisector));
+        currentR.bisectors.forEach(d => trimBisector(currentBisector, d));
+        currentL.bisectors.filter(filterByDirection(goUp,currentL))
+                          .forEach(d => trimBisector(d, currentBisector));
         //currentBisector.intersections.push(cropR.point);
         crossedBorder = cropR.bisector;
         currentR = cropR.bisector.sites.find(e => e !== currentR);
@@ -383,7 +395,11 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         //console.log('left first', currentBisector, currentL.bisectors.filter(e => e.compound));
         trimBisector(currentBisector, cropL.bisector, cropL.point);
         trimBisector(cropL.bisector, currentBisector, cropL.point);
-        currentL.bisectors.filter(e => e.compound).forEach(d => trimBisector(d, currentBisector));        
+        currentL.bisectors.filter(filterByDirection(goUp,currentL))
+                          .forEach(d => trimBisector(d, currentBisector));
+        currentL.bisectors.forEach(d => trimBisector(currentBisector, d));
+        currentR.bisectors.filter(filterByDirection(goUp,currentR))
+                          .forEach(d => trimBisector(d, currentBisector));                        
         //currentBisector.intersections.push(cropL.point);
         crossedBorder = cropL.bisector;
         currentL = cropL.bisector.sites.find(e => e !== currentL);
@@ -393,8 +409,12 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         console.log("double moving on...");
         trimBisector(currentBisector, cropR.bisector, cropR.point);
         trimBisector(cropR.bisector, currentBisector, cropR.point);
-        currentR.bisectors.filter(e => e.compound).forEach(d => trimBisector(d, currentBisector));        
-        currentL.bisectors.filter(e => e.compound).forEach(d => trimBisector(d, currentBisector));
+        currentR.bisectors.filter(filterByDirection(goUp,currentR))
+                          .forEach(d => trimBisector(d, currentBisector));        
+        currentR.bisectors.forEach(d => trimBisector(currentBisector, d));        
+        currentL.bisectors.filter(filterByDirection(goUp,currentL))
+                          .forEach(d => trimBisector(d, currentBisector));
+        currentL.bisectors.forEach(d => trimBisector(currentBisector, d));
 
         //currentBisector.intersections.push(cropR.point);
         crossedBorder = cropR.bisector;
@@ -412,12 +432,23 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
     currentR.bisectors.forEach(e => trimBisector(currentBisector, e));
     currentL.bisectors.forEach(e => trimBisector(currentBisector, e));
 
+
     return walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, goUp, crossedBorder, mergeArray, findBisector);            
     
 }
 
-function willMergeLineEscapeTheDesert(crossedBorder, currentMergeLine, currentSide, otherside, currentCropPoint, findBisector){
+// we need to filter bisectors to trib by direction
+function filterByDirection(direction, currentSite){
+    return function(bisector){
+        return findHopTo(bisector, currentSite).site[1] < currentSite.site[1] === direction;
+    }
+}
+
+function willMergeLineEscapeTheDesert(crossedBorder, rawCurrentMergeLine, currentSide, otherside, currentCropPoint, findBisector){
     let hopTo = findHopTo(crossedBorder.bisector, currentSide);
+
+    // we need to see the whole raw merge line to determine if it will escape.
+    let currentMergeLine = findBisector(...rawCurrentMergeLine.sites);
 
     // first off, if the crossed border is not compound, the meger line will secape the desert
     if(!crossedBorder.bisector.compound){
@@ -622,6 +653,9 @@ function checkForOphans(trapper, trapped, goUp, findBisector){
  */
 function curryFindBisector(callback, width, height){
     return function(P1, P2){
+        if(samePoint(P1.site,P2.site)){
+            throw new Error(`Data must not contain duplicate sites. Sites: ${JSON.stringify(P1.site)}, ${JSON.stringify(P2.site)}`);
+        }
         return callback(P1, P2, width, height);
     }
 }
@@ -843,7 +877,7 @@ function getExtremePoint(bisector, goUp){
 function trimBisector(target, intersector, passedIntersection, backtrim){
 
     if(!target.compound && !intersector.compound){
-
+        //console.log(`trimming target ${JSON.stringify(target.sites.map(e => e.site))} with ${JSON.stringify(intersector.sites.map(e => e.site))}`);
         let intersection = bisectorIntersection(target, intersector);
 
         if(!intersection){
@@ -896,12 +930,17 @@ function trimBisector(target, intersector, passedIntersection, backtrim){
                 JSON.stringify(intersector.sites.map(d => d.site)), 
                 intersector.sites.map(d => distance(e, d.site)), 
                 targetShortestDistance <= intersectorShortestDistance, 
-                e, 
+                JSON.stringify(e), 
                 JSON.stringify(target.sites.map(e => e.site))
             )
             */
             if(distance(e, intersector.sites[0].site) === distance(e, intersector.sites[1].site)){
-                return samePoint(e, intersection) ||
+
+                if(intersector.compoundComponent && false){
+                    return targetShortestDistance < intersectorShortestDistance || samePoint(e, intersection);
+                }
+                else{
+                    return samePoint(e, intersection) ||
                        !intersector.points.some((d,i,x) => {
                            if (i === x.length - 1){
                                return false;
@@ -909,7 +948,8 @@ function trimBisector(target, intersector, passedIntersection, backtrim){
                            else{
                                return distance(d,e) === distance(x[i+1],e)                        
                            }
-                        }); 
+                        });
+                }   
             }
             else{
                 return targetShortestDistance <= intersectorShortestDistance || samePoint(e, intersection); 
