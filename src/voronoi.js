@@ -239,7 +239,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                                 bisector:e, 
                                 point:bisectorIntersection(currentBisector, e, currentCropPoint) || 
                                       (distance(currentCropPoint, e.sites[0].site) === distance(currentCropPoint, e.sites[1].site) ? currentCropPoint: false),
-                                overrideSamePoint: distance(currentCropPoint, e.sites[0].site) === distance(currentCropPoint, e.sites[1].site) && e.compound
+                                overrideSamePoint: overrideSamePoint(e, currentCropPoint, crossedBorder)
                                 
                             }
                         })
@@ -276,7 +276,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                                 bisector:e, 
                                 point:bisectorIntersection(currentBisector, e, currentCropPoint) || 
                                       (distance(currentCropPoint, e.sites[0].site) === distance(currentCropPoint, e.sites[1].site) ? currentCropPoint : false),
-                                overrideSamePoint: distance(currentCropPoint, e.sites[0].site) === distance(currentCropPoint, e.sites[1].site) && e.compound
+                                overrideSamePoint: overrideSamePoint(e, currentCropPoint, crossedBorder)
                             }
                         })
                         .filter(e => {
@@ -310,8 +310,8 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
     let cropL = cropLArray.length > 0 && cropLArray[0] !== currentBisector ? cropLArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
     let cropR = cropRArray.length > 0 && cropRArray[0] !== currentBisector ? cropRArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
     console.log(
-        cropLArray, 
-        cropRArray, 
+        cropLArray ? cropLArray.map(e => e.bisector.sites.map(d => JSON.stringify(d.site))) : cropLArray, 
+        cropRArray ? cropRArray.map(e => e.bisector.sites.map(d => JSON.stringify(d.site))) : cropRArray, 
         goUp, 
         currentL.site, 
         currentR.site,
@@ -360,7 +360,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
             currentR.bisectors.forEach(e => trimBisector(e, currentBisector));
             currentL.bisectors.forEach(e => trimBisector(e, currentBisector));
 
-            return walkMergeLine(currentR, hopTo, newMergeBisector, currentCropPoint, goUp, currentBisector, mergeArray, findBisector);
+            return walkMergeLine(currentR, hopTo, newMergeBisector, currentCropPoint, goUp, null, mergeArray, findBisector);
 
         }
         else if(
@@ -385,12 +385,12 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
             currentR.bisectors.forEach(e => trimBisector(e, currentBisector));
             currentL.bisectors.forEach(e => trimBisector(e, currentBisector));
 
-            return walkMergeLine(hopTo, currentL, newMergeBisector, currentCropPoint, goUp, currentBisector, mergeArray, findBisector);
+            return walkMergeLine(hopTo, currentL, newMergeBisector, currentCropPoint, goUp, null, mergeArray, findBisector);
         }
         
     }
 
-    if(Math.abs(cropR.point[1] - currentCropPoint[1]) < Math.abs(cropL.point[1] - currentCropPoint[1])){
+    if(sideThatCrossesABorderFirst(cropR.point, cropL.point, currentCropPoint, goUp) === "right"){
         //console.log('right first', cropR, currentBisector);
         trimBisector(currentBisector, cropR.bisector, cropR.point, null, false);
         currentR.bisectors.forEach(e => trimBisector(currentBisector, e));
@@ -404,21 +404,21 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         
 
         let newMergeLine = findBisector(currentR, currentL);
-        console.log(`trimming new bisector right [${currentL.site}] [${currentR.site}] with ${JSON.stringify(cropR.bisector.sites.map(e => e.site))} at ${cropR.point}`)        
+        //console.log(`trimming new bisector right [${currentL.site}] [${currentR.site}] with ${JSON.stringify(cropR.bisector.sites.map(e => e.site))} at ${cropR.point}`)        
         trimBisector(newMergeLine, cropR.bisector, cropR.point, true, true, goUp);
-        console.log("trimmed new bisector right")        
+        //console.log("trimmed new bisector right")        
 
         trimBisector(cropR.bisector, currentBisector, cropR.point);
         
-        lastR.bisectors.filter(filterByDirection(goUp,currentR))
-                          .forEach(d => trimBisector(d, currentBisector));
+        lastR.bisectors.filter(filterByDirection(goUp,lastR))
+                          .forEach(d => trimBisector(d, findBisector(...currentBisector.sites), null, false, true, null));
         currentR.bisectors.forEach(d => trimBisector(currentBisector, d));
-        currentL.bisectors.filter(filterByDirection(goUp,currentL))
-                          .forEach(d => trimBisector(d, currentBisector));
-                       
+
+        currentL.bisectors.filter(d => d.compound)
+                          .forEach(d => trimBisector(d, currentBisector, null, false, true, null));
         currentBisector = newMergeLine;
     }
-    else if(Math.abs(cropR.point[1] - currentCropPoint[1]) > Math.abs(cropL.point[1] - currentCropPoint[1])){
+    else if(sideThatCrossesABorderFirst(cropR.point, cropL.point, currentCropPoint, goUp) === "left"){
         //console.log('left first', currentBisector, currentL.bisectors.filter(e => e.compound));
         trimBisector(currentBisector, cropL.bisector, cropL.point, null, false);
         currentR.bisectors.forEach(e => trimBisector(currentBisector, e));
@@ -430,18 +430,18 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         currentCropPoint = cropL.point;
 
         let newMergeLine = findBisector(currentR, currentL);
-        console.log(`trimming new bisector left [${currentL.site}] [${currentR.site}] with ${JSON.stringify(cropL.bisector.sites.map(e => e.site))} at ${cropL.point}`)
+        //console.log(`trimming new bisector left [${currentL.site}] [${currentR.site}] with ${JSON.stringify(cropL.bisector.sites.map(e => e.site))} at ${cropL.point}`)
         trimBisector(newMergeLine, cropL.bisector, cropL.point, true, true, goUp);
-        console.log("trimmed new bisector left")
+        //console.log("trimmed new bisector left")
         
         trimBisector(cropL.bisector, currentBisector, cropL.point);
         
-        lastL.bisectors.filter(filterByDirection(goUp,currentL))
-                          .forEach(d => trimBisector(d, currentBisector, null, false, true, null));
+        lastL.bisectors.filter(filterByDirection(goUp,lastL))
+                          .forEach(d => trimBisector(d, findBisector(...currentBisector.sites), null, false, true, null));
         currentL.bisectors.forEach(d => trimBisector(currentBisector, d));
-        currentR.bisectors.filter(filterByDirection(goUp,currentR))
-                          .forEach(d => trimBisector(d, currentBisector, null, false, true, null));
-                          
+
+        currentR.bisectors.filter(d => d.compound)
+                          .forEach(d => trimBisector(d, currentBisector, null, false, true, null));                 
         currentBisector = newMergeLine;
     }
     else{
@@ -451,6 +451,8 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         currentL.bisectors.forEach(e => trimBisector(currentBisector, e));
 
         crossedBorder = cropR.bisector;
+        let lastR = currentR;
+        let lastL = currentL;
         currentR = cropR.bisector.sites.find(e => e !== currentR);
         currentL = cropL.bisector.sites.find(e => e !== currentL);
         currentCropPoint = cropL.point;
@@ -459,11 +461,11 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         trimBisector(newMergeLine, cropL.bisector, cropL.point, true, true, goUp);
         trimBisector(newMergeLine, cropR.bisector, cropR.point, true, true, goUp);
 
-        currentR.bisectors.filter(filterByDirection(goUp,currentR))
-                          .forEach(d => trimBisector(d, currentBisector));        
+        lastR.bisectors.filter(filterByDirection(goUp,lastR))
+                          .forEach(d => trimBisector(d, findBisector(...currentBisector.sites), null, false, true, null));        
         currentR.bisectors.forEach(d => trimBisector(currentBisector, d, null, false, true, null));        
-        currentL.bisectors.filter(filterByDirection(goUp,currentL))
-                          .forEach(d => trimBisector(d, currentBisector));
+        lastL.bisectors.filter(filterByDirection(goUp,lastL))
+                          .forEach(d => trimBisector(d, findBisector(...currentBisector.sites), null, false, true, null));
         currentL.bisectors.forEach(d => trimBisector(currentBisector, d, null, false, true, null));
         
         trimBisector(cropR.bisector, currentBisector, cropR.point, null, false, true, null);
@@ -480,10 +482,54 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
     
 }
 
+function sideThatCrossesABorderFirst(cropRPoint, cropLPoint, currentCropPoint, goUp){
+    console.log("points are", cropLPoint, cropRPoint, currentCropPoint)
+    if(currentCropPoint !== null){
+        if(Math.abs(cropRPoint[1] - currentCropPoint[1]) === Math.abs(cropLPoint[1] - currentCropPoint[1])){
+            return null
+        }
+        else{
+            return Math.abs(cropRPoint[1] - currentCropPoint[1]) < Math.abs(cropLPoint[1] - currentCropPoint[1]) ?
+            "right" : "left"
+        }
+        
+    }
+    else{
+        //console.log("points are:", cropLPoint[1] , cropRPoint[1] )
+        
+        if(cropRPoint[1] === cropLPoint[1]){
+            return null;
+        }
+        else{
+            if(goUp){
+                return cropRPoint[1] > cropLPoint[1] ? "right" : "left"
+            }
+            else{
+                return cropRPoint[1] < cropLPoint[1] ? "right" : "left"
+            }
+        }
+    }
+}
+
+function overrideSamePoint(e, currentCropPoint, crossedBorder){
+    return (distance(currentCropPoint, e.sites[0].site) === distance(currentCropPoint, e.sites[1].site) && e.compound && crossedBorder !== null) //|| 
+           //(crossedBorder && e !== crossedBorder && !crossedBorder.compound);
+}
+
 // we need to filter bisectors to trib by direction
 function filterByDirection(direction, currentSite){
     return function(bisector){
-        return findHopTo(bisector, currentSite).site[1] < currentSite.site[1] === direction || bisector.compound;
+        return findHopTo(bisector, currentSite).site[1] <= currentSite.site[1] === direction || bisector.compound;
+    }
+}
+
+function filterOtherside(direction, currentSite, cropPoint, currentBisector){
+    return function(bisector){
+        let intersect = bisectorIntersection(bisector,currentBisector);
+        if (!intersect){
+            return false;
+        }
+        return bisector.compound && intersect[1] < cropPoint[1];
     }
 }
 
@@ -920,7 +966,7 @@ function getExtremePoint(bisector, goUp){
 function trimBisector(target, intersector, passedIntersection = null, usePassedIntersection = false, stopAtDesert = false, backtrimDirection = null){
 
     if(!target.compound && !intersector.compound){
-        // console.log(`trimming target ${JSON.stringify(target.sites.map(e => e.site))} with ${JSON.stringify(intersector.sites.map(e => e.site))}`);
+        //console.log(`trimming target ${JSON.stringify(target.sites.map(e => e.site))} with ${JSON.stringify(intersector.sites.map(e => e.site))}`);
         let intersection = bisectorIntersection(target, intersector);
 
         if(!intersection && !usePassedIntersection){
@@ -929,7 +975,7 @@ function trimBisector(target, intersector, passedIntersection = null, usePassedI
         }
 
         if(!intersection && passedIntersection && usePassedIntersection){
-            console.log("yep", passedIntersection);
+            //console.log("yep", passedIntersection);
             intersection = passedIntersection;
         }
         
@@ -1007,12 +1053,12 @@ function trimBisector(target, intersector, passedIntersection = null, usePassedI
                     let otherPolyDistance = Math.min(...target.sites.reduce((c,f) => {
                         return [...c, ...f.bisectors.map(d => distance(findHopTo(d, f).site, e))]
                     },[]))
-                    console.log(e[1] < intersection[1] === backtrimDirection, samePoint(e, intersection), e);
+                    //console.log(e[1] < intersection[1] === backtrimDirection, samePoint(e, intersection), e);
                     //return (otherPolyDistance >= siteDist || samePoint(e, intersection)) || (e[1] < intersection[1] !== backtrimDirection);
                     return e[1] < intersection[1] === backtrimDirection || samePoint(e, intersection);
                 }
                 else{
-                    console.log("nope", e)
+                    //console.log("nope", e)
                     return samePoint(e, intersection) ||
                        !intersector.points.some((d,i,x) => {
                            if (i === x.length - 1){
