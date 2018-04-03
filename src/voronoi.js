@@ -57,9 +57,7 @@ function generateL1Voronoi(sitePoints,width,height){
 
     const findBisector = curryFindBisector(findL1Bisector, width, height);
     const graph = recursiveSplit(sites, findBisector, width, height);
-    //console.log(graph);
     return graph.map(site => {
-        //console.log(site);
         site.polygonPoints = site.bisectors.reduce((total, bisector, index, bisectors)=>{
 
             if(index === 0){
@@ -182,7 +180,6 @@ function recursiveSplit(splitArray, findBisector, width, height){
     // otherwise, determine te vertexes if its got two sites
     else if(splitArray.length === 2){
         let bisector = findBisector(...splitArray);
-        //console.log(bisector);
         splitArray.forEach(e => { e.bisectors.push(bisector) });
         return splitArray;
     }
@@ -227,7 +224,6 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                         .sort((a, b) => {
                             if(samePoint(a.point,b.point)){
                                 //console.log("corner problem Left")
-                                //console.log(angle(currentL.site, findHopTo(b.bisector, currentL).site), angle(currentL.site, findHopTo(a.bisector, currentL).site) )
                                 return angle(currentL.site, findHopTo(b.bisector, currentL).site) - angle(currentL.site, findHopTo(a.bisector, currentL).site)
                             }
                             return angle(currentL.site, findHopTo(b.bisector, currentL).site) - angle(currentL.site, findHopTo(a.bisector, currentL).site)                            
@@ -248,8 +244,6 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                         })
                         .sort((a, b) => {
                             if(samePoint(a.point,b.point)){
-                                console.log("corner problem Right");
-                                //console.log(findHopTo(a.bisector,currentR),checkForOphans(currentL, findHopTo(a.bisector,currentR), goUp, findBisector), checkForOphans(currentL, findHopTo(b.bisector,currentR), goUp, findBisector))
                                 return angle(currentR.site, findHopTo(a.bisector, currentR).site) - angle(currentR.site, findHopTo(b.bisector, currentR).site)
                             }
                             return angle(currentR.site, findHopTo(a.bisector, currentR).site) - angle(currentR.site, findHopTo(b.bisector, currentR).site)                            
@@ -264,7 +258,6 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
 
     let cropL = cropLArray.length > 0 && cropLArray[0] !== currentBisector ? cropLArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
     let cropR = cropRArray.length > 0 && cropRArray[0] !== currentBisector ? cropRArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
-    console.log(cropLArray, cropRArray, goUp, currentL.site, currentR.site, checkForOphans(currentR, currentL, goUp, findBisector), checkForOphans(currentL, currentR, goUp, findBisector));                    
     // If no intersection, we're done.
     if(
         (!cropL.bisector && !cropR.bisector)
@@ -329,7 +322,6 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         currentCropPoint = cropL.point;                                       
     }
     else{
-        console.log("double moving on...");
         trimBisector(cropR.bisector, currentBisector, cropR.point);
         trimBisector(currentBisector, cropR.bisector, cropR.point);
         currentBisector.intersections.push(cropR.point);
@@ -573,7 +565,6 @@ function findL1Bisector(P1, P2, width, height){
         ].sort((a,b) => a[0] - b[0]);
     }
 
-    //console.log(bisector.points.length);
     return bisector;
 }
 
@@ -678,8 +669,6 @@ function isNewBisectorUpward(hopTo, hopFrom, site, goUp){
 
     // this needs to be here to account for bisectors 
     if(Math.abs(slope) === Infinity){
-        console.log("verticle slope :/");
-        console.log( "Hop From:",hopFrom.site, "Hop to:", hopTo.site, "site:",site.site, "is upward", site.site[1] < hopTo.site[1] );
         return site.site[1] > hopTo.site[1];
     }
 
@@ -699,7 +688,6 @@ function bisectorIntersection(B1, B2){
     if(B1 === B2){
         return false;
     }
-    //console.log(segementIntersection([[202.5,0], [202.5,289]],[[400,288.5], [148,288.5]]));
     for(let i = 0; i < B1.points.length - 1; i++){
         for(let j = 0; j < B2.points.length - 1; j++){
             let intersect = segementIntersection([B1.points[i], B1.points[i+1]], [B2.points[j], B2.points[j+1]], i, j);
