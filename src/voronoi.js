@@ -35,15 +35,40 @@ function generateVoronoiPoints(points, width, height, distanceCallback){
 };
 
 /**
+ * Nudge points to hopefully eliminate square bisectors
+ * 
+ * @param {Array<[x,y]>} data 
+ */
+function cleanData(data){
+    data.forEach((e,i)=> {
+        data.forEach((d,j) => {
+            if(
+                i !== j &&
+                Math.abs(d[0] - e[0]) === Math.abs(d[1] - e[1])
+            ){
+                d[0] = d[0] + 1e-10*d[0];
+                d[1] = d[1] + 2e-10*d[1];
+            }
+        });
+    });
+    return data;
+}
+
+/**
  * Generate an L1 Voronoi diagram
  * 
  * @param {array} sitePoints 
  * @param {number} width 
  * @param {number} height
+ * @param {boolean} nudgeData
  * @returns {Array<Site>} 
  */
 
-function generateL1Voronoi(sitePoints,width,height){
+function generateL1Voronoi(sitePoints, width, height, nudgeData = true){
+
+    if(nudgeData){
+        sitePoints = cleanData(sitePoints);
+    }
 
     // sort points by x axis, breaking ties with y
     let sites = sitePoints.sort((a,b)=>{
@@ -222,12 +247,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                             return e.point && (goUp === isNewBisectorUpward(hopTo, currentL, currentR, goUp)) && !samePoint(e.point, currentCropPoint);
                         })
                         .sort((a, b) => {
-                            if(samePoint(a.point,b.point)){
-                                //console.log("corner problem Left")
-                                return angle(currentL.site, findHopTo(b.bisector, currentL).site) - angle(currentL.site, findHopTo(a.bisector, currentL).site)
-                            }
                             return angle(currentL.site, findHopTo(b.bisector, currentL).site) - angle(currentL.site, findHopTo(a.bisector, currentL).site)                            
-                            //return goUp ? a.point[1] - b.point[1] : b.point[1] - a.point[1];
                         })
                         .filter((e, i, candidates) => {
                             let hopTo = findHopTo(e.bisector, currentL);
@@ -243,11 +263,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                             return e.point && (goUp === isNewBisectorUpward(hopTo, currentR, currentL, goUp)) && !samePoint(e.point, currentCropPoint);
                         })
                         .sort((a, b) => {
-                            if(samePoint(a.point,b.point)){
-                                return angle(currentR.site, findHopTo(a.bisector, currentR).site) - angle(currentR.site, findHopTo(b.bisector, currentR).site)
-                            }
                             return angle(currentR.site, findHopTo(a.bisector, currentR).site) - angle(currentR.site, findHopTo(b.bisector, currentR).site)                            
-                            //return goUp ? a.point[1] - b.point[1] : b.point[1] - a.point[1];
                         })
                         .filter((e, i, candidates) => {
                             let hopTo = findHopTo(e.bisector, currentR);
@@ -258,6 +274,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
 
     let cropL = cropLArray.length > 0 && cropLArray[0] !== currentBisector ? cropLArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
     let cropR = cropRArray.length > 0 && cropRArray[0] !== currentBisector ? cropRArray[0] : {bisector:null, point:goUp ? [Infinity, Infinity] : [-Infinity, -Infinity]};
+    
     // If no intersection, we're done.
     if(
         (!cropL.bisector && !cropR.bisector)
@@ -305,7 +322,8 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         return mergeArray;
     }
 
-    if(Math.abs(cropR.point[1] - currentCropPoint[1]) < Math.abs(cropL.point[1] - currentCropPoint[1])){
+    // determine which point  
+    if(determineFirstBorderCross(cropR, cropL, currentCropPoint) === "right"){
         trimBisector(cropR.bisector, currentBisector, cropR.point);
         trimBisector(currentBisector, cropR.bisector, cropR.point);
         currentBisector.intersections.push(cropR.point);
@@ -313,7 +331,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
         currentR = cropR.bisector.sites.find(e => e !== currentR);
         currentCropPoint = cropR.point;               
     }
-    else if(Math.abs(cropR.point[1] - currentCropPoint[1]) > Math.abs(cropL.point[1] - currentCropPoint[1])){
+    else if(determineFirstBorderCross(cropR,cropL,currentCropPoint) === "left"){
         trimBisector(cropL.bisector, currentBisector, cropL.point);
         trimBisector(currentBisector, cropL.bisector, cropL.point);
         currentBisector.intersections.push(cropL.point);
@@ -349,6 +367,15 @@ function angle(P1, P2){
     }
 
     return angle;
+}
+
+function determineFirstBorderCross(cropR,cropL,currentCropPoint){
+    if(Math.abs(cropR.point[1] - currentCropPoint[1]) === Math.abs(cropL.point[1] - currentCropPoint[1])){
+        return null
+    }
+    else{
+        return Math.abs(cropR.point[1] - currentCropPoint[1]) < Math.abs(cropL.point[1] - currentCropPoint[1]) ? "right" : "left";
+    }
 }
 
 /**
@@ -501,9 +528,14 @@ function findL1Bisector(P1, P2, width, height){
     let up = null;
     
     if(Math.abs(xDistance) === Math.abs(yDistance)){
-        console.warn("square bisector");
+        throw new Error(
+            `Square bisector: Points ${JSON.stringify(P1)} and ${JSON.stringify(P2)} are points on a square 
+            (That is, their vertical distance is equal to their horizontal distance). Consider using the nudge points function or set the nudge data flag.`
+        );
+    }
 
-        return {sites:[P1, P2], up:false, points:vertexes, intersections:[], compound:true};        
+    if(samePoint(P1.site,P2.site)){
+        throw new Error(`Duplicate point: Points ${JSON.stringify(P1)} and ${JSON.stringify(P2)} are duplicates. please remove one`);
     }
     
 
@@ -744,4 +776,4 @@ function samePoint(P1, P2){
 }
 
 
-export {generateVoronoiPoints, generateL1Voronoi};
+export {generateVoronoiPoints, generateL1Voronoi, cleanData};
