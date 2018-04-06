@@ -67,7 +67,6 @@ function cleanData(data){
 function generateL1Voronoi(sitePoints, width, height, nudgeData = true){
 
     if(nudgeData){
-        console.log("nudging data");
         sitePoints = cleanData(sitePoints);
     }
 
