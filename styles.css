@@ -22,3 +22,23 @@ body{
 #points{
     white-space: pre-wrap;    
 }
+
+#merge-levels{
+    display: flex;
+    flex-direction: row;
+}
+
+.level-descriptor{
+    display: flex;
+    flex-direction: column;
+}
+
+.level-descriptor > div{
+    height: 30px;
+    width: 30px;
+}
+
+.level-descriptor > p{
+    text-align: center;
+    font-size: small;
+}

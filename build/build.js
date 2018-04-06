@@ -21,7 +21,10 @@ function randomNormal(sharpness) {
     }, 0) / sharpness;
 }
 
-var raw = new Array(128).fill(0).map(function (e) {
+var params = new URL(document.location).searchParams;
+var numPoints = parseInt(params.get("points")) || 128;
+
+var raw = new Array(numPoints).fill(0).map(function (e) {
     return [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)];
 });
 var sites = raw.slice(0);
@@ -34,8 +37,27 @@ document.getElementById("points").textContent = JSON.stringify(sites.sort(functi
     }
 }), null);
 
+var mergeLevels = document.getElementById("merge-levels");
+var levels = Math.log2(sites.length);
+
+for (var i = 1; i <= levels; i++) {
+    var level = document.createElement("div");
+    level.setAttribute("class", "level-descriptor");
+
+    var colorSwatch = document.createElement("div");
+    colorSwatch.style.backgroundColor = getColor(Math.pow(2, i));
+
+    var label = document.createElement("p");
+    label.textContent = Math.pow(2, i).toString();
+
+    level.appendChild(colorSwatch);
+    level.appendChild(label);
+
+    mergeLevels.appendChild(level);
+}
+
 var vectorPoints = (0, _voronoi.generateL1Voronoi)(sites, width, height, true);
-console.log(vectorPoints);
+
 // draw svg shapes
 vectorPoints.forEach(function (site) {
 

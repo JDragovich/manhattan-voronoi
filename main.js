@@ -14,7 +14,10 @@ function randomNormal(sharpness){
     return new Array(sharpness).fill(0).map(e => Math.random()).reduce((c,e) => c + e, 0) / sharpness;
 }
 
-let raw = new Array(128).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
+let params = (new URL(document.location)).searchParams;
+let numPoints = parseInt(params.get("points")) || 128;
+
+let raw = new Array(numPoints).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
 let sites = raw.slice(0);
 
 document.getElementById("points").textContent = JSON.stringify(sites.sort((a,b) => {
@@ -26,8 +29,27 @@ document.getElementById("points").textContent = JSON.stringify(sites.sort((a,b) 
     }
 }), null);
 
+let mergeLevels = document.getElementById("merge-levels")
+let levels = Math.log2(sites.length);
+
+for(let i=1; i <= levels; i++){
+    let level = document.createElement("div");
+    level.setAttribute("class", "level-descriptor");
+
+    let colorSwatch = document.createElement("div");
+    colorSwatch.style.backgroundColor = getColor(Math.pow(2, i));
+
+    let label = document.createElement("p");
+    label.textContent = Math.pow(2, i).toString();
+
+    level.appendChild(colorSwatch);
+    level.appendChild(label);
+
+    mergeLevels.appendChild(level);
+}
+
 let vectorPoints = generateL1Voronoi(sites ,width, height, true);
-console.log(vectorPoints);
+
 // draw svg shapes
 vectorPoints.forEach(site =>{
     
