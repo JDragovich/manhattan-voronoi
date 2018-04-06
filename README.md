@@ -1,22 +1,24 @@
 # Manhattan Voronoi
 
-A library for generating L1 (Manhattan distance) voronoi diagrams
+A library for generating L1 (Manhattan distance) Voronoi diagrams
+
+See the [Demo Page](http://voronoi.joe-dragovich.co.uk.s3-website.eu-west-2.amazonaws.com/)
 
 ## What is a Manhattan Voronoi diagram?
 
-As defined by Wikipedia a voronoi diagram is:
+As defined by Wikipedia a Voronoi diagram is:
 
 >In mathematics, a Voronoi diagram is a partitioning of a plane into regions based on distance to points in a specific subset of the plane.
 
-In other words, a voronoi cell contains all of the points in a plane that are closer to a site then any other site. Unlike most voronoi digrams, which use the L2 (Euclidean distance) metric, Manhanttan distance voronoi digrams use the L1 metric. This creates cells that have kinked edges and strange protusions. In short, they just look cool!
+In other words, a Voronoi cell contains all of the points in a plane that are closer to a site then any other site. Unlike most Voronoi digrams, which use the L2 (Euclidean distance) metric, Manhanttan distance Voronoi digrams use the L1 metric. This creates cells that have kinked edges and strange protusions. In short, they just look cool!
 
 for more information on metrics in mathematics see [Wikipedia](https://en.wikipedia.org/wiki/Metric_(mathematics)).
 
 ## What is this for?
 
-This library is an implementation of Lee and Wong's algorithm for generating L1 voronoi and provides a more performant alternative to checking every point on a plane. 
+This library is an implementation of Lee and Wong's algorithm for generating L1 Voronoi and provides a more performant alternative to checking every point on a plane. 
 
-This library also returns the voronoi polygon points, which are useful for display as vector graphics.
+This library also returns the Voronoi polygon points, which are useful for display as vector graphics.
 
 ## API Reference
 
@@ -44,7 +46,7 @@ It handles these situations by cleaning the input points to move them slightly o
 ## Example Usage
 
 ~~~ javascript
-import {generateVoronoiPoints, generateL1Voronoi, cleanData} from "manhattan-voronoi";
+import {generateVoronoiPoints, generateL1Voronoi, cleanData} from "manhattan-Voronoi";
 
 let sites  = [[4,6], [3,10], [10,6], [1,2]];
 let width  = 30;
