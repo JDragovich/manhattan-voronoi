@@ -46,8 +46,8 @@ function cleanData(data){
                 i !== j &&
                 Math.abs(d[0] - e[0]) === Math.abs(d[1] - e[1])
             ){
-                d[0] = d[0] + 1e-10*d[0];
-                d[1] = d[1] - 2e-10*d[1];
+                d[0] = d[0] + 1e-10*d[1];
+                d[1] = d[1] + 2e-10*d[0];
             }
         });
     });
@@ -266,7 +266,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                         .map(e => {return {bisector:e, point:bisectorIntersection(currentBisector, e)}})
                         .filter(e => {
                             let hopTo = e.bisector.sites.find(d => d !== currentL);
-                            return e.point && (goUp === isNewBisectorUpward(hopTo, currentL, currentR, goUp)) && !samePoint(e.point, currentCropPoint);
+                            return e.point && (goUp === isNewBisectorUpward(hopTo, currentL, currentR, goUp)) && (!samePoint(e.point, currentCropPoint) || e.bisector !== crossedBorder);
                         })
                         .sort((a, b) => {
                             return angle(currentL.site, findHopTo(b.bisector, currentL).site) - angle(currentL.site, findHopTo(a.bisector, currentL).site)                            
@@ -282,7 +282,7 @@ function walkMergeLine(currentR, currentL, currentBisector, currentCropPoint, go
                         .map(e => {return {bisector:e, point:bisectorIntersection(currentBisector, e)}})
                         .filter(e => {
                             let hopTo = e.bisector.sites.find(d => d !== currentR);
-                            return e.point && (goUp === isNewBisectorUpward(hopTo, currentR, currentL, goUp)) && !samePoint(e.point, currentCropPoint);
+                            return e.point && (goUp === isNewBisectorUpward(hopTo, currentR, currentL, goUp)) && (!samePoint(e.point, currentCropPoint) || e.bisector !== crossedBorder);
                         })
                         .sort((a, b) => {
                             return angle(currentR.site, findHopTo(a.bisector, currentR).site) - angle(currentR.site, findHopTo(b.bisector, currentR).site)                            

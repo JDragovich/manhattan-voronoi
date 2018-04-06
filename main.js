@@ -14,7 +14,7 @@ function randomNormal(sharpness){
     return new Array(sharpness).fill(0).map(e => Math.random()).reduce((c,e) => c + e, 0) / sharpness;
 }
 
-let raw = new Array(1024).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
+let raw = new Array(2048).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
 let sites = raw.slice(0);
 
 document.getElementById("points").textContent = JSON.stringify(sites.sort((a,b) => {
