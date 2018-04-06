@@ -14,7 +14,7 @@ function randomNormal(sharpness){
     return new Array(sharpness).fill(0).map(e => Math.random()).reduce((c,e) => c + e, 0) / sharpness;
 }
 
-let raw = new Array(2048).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
+let raw = new Array(128).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
 let sites = raw.slice(0);
 
 document.getElementById("points").textContent = JSON.stringify(sites.sort((a,b) => {
@@ -27,7 +27,7 @@ document.getElementById("points").textContent = JSON.stringify(sites.sort((a,b) 
 }), null);
 
 let vectorPoints = generateL1Voronoi(sites ,width, height, true);
-
+console.log(vectorPoints);
 // draw svg shapes
 vectorPoints.forEach(site =>{
     
@@ -52,14 +52,14 @@ vectorPoints.forEach(site =>{
     var siteCirc = document.createElementNS("http://www.w3.org/2000/svg", 'circle'); //Create a path in SVG's namespace
     siteCirc.setAttribute("cx", site.site[0]); //Set path's data
     siteCirc.setAttribute("cy", site.site[1]); //Set path's data
-    siteCirc.setAttribute("r", 2); //Set path's data
+    siteCirc.setAttribute("r", 1); //Set path's data
     siteCirc.style.fill = "#000"; //Set stroke colour
     mergeProcess.appendChild(siteCirc);
 
     var siteCirc = document.createElementNS("http://www.w3.org/2000/svg", 'circle'); //Create a path in SVG's namespace
     siteCirc.setAttribute("cx", site.site[0]); //Set path's data
     siteCirc.setAttribute("cy", site.site[1]); //Set path's data
-    siteCirc.setAttribute("r", 2); //Set path's data
+    siteCirc.setAttribute("r", 1); //Set path's data
     siteCirc.style.fill = "#000"; //Set stroke colour
     diagram.appendChild(siteCirc);
 });

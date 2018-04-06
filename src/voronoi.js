@@ -156,6 +156,8 @@ function generateL1Voronoi(sitePoints, width, height, nudgeData = true){
 
         site.d = `M ${ site.polygonPoints.map(e => e.join(" ")).join(" L")} Z`;
 
+        site.neighbors = site.bisectors.map(e => findHopTo(e, site.site).site);
+
         return site;
     });
 

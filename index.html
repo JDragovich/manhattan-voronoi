@@ -7,16 +7,16 @@
     </head>
     <body>
         <h1>Generating L1 Voronoi Diagrams</h1>
-        <p>This is a demonstartion of my attempt at implemting Wong et al's Algroithm for generating L1 Voronoi diagrams. This is a work in progress and teh method is not perfect yet. Right now I'm working through edge cases and I have not yet solved handling bisectors where the points are on a square.</p>
-        <p>Refresh this page ot generate another diagram</p>
+        <p>This is a demonstartion of my attempt at implemting Lee and Wong's algroithm for generating L1 Voronoi diagrams. This is a work in progress and the method is not perfect yet. Right now I'm working through edge cases and I have not yet solved handling bisectors where the points are on a square.</p>
+        <p>Refresh this page to generate another diagram</p>
         <div class="container">
             <div>
-                <h2>Naive Algorithm</h2>
-                <canvas id="diagram"></canvas>                    
+                <h2>Diagram</h2>
+                <svg id="diagram"></svg>            
             </div>
             <div>
-                <h2>Wong et al. Algorithm</h2>
-                <svg id="svg"></svg>            
+                <h2>Merge process</h2>
+                <svg id="merge-process"></svg>            
             </div>
         </div>
         <h3>Points</h3>
