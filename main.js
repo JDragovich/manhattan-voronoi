@@ -83,6 +83,18 @@ function getColor(color){
         break;   
         case 128:
             return "#009182";
+        break;
+        case 256:
+            return "#993300";
+        break;
+        case 512:
+            return "#669999";
+        break;
+        case 1024:
+            return "#800000";
+        break;
+        case 2048:
+            return "#333300";
         break;   
         default:
             return "#000000";
