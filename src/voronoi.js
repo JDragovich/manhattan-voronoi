@@ -47,7 +47,7 @@ function cleanData(data){
                 Math.abs(d[0] - e[0]) === Math.abs(d[1] - e[1])
             ){
                 d[0] = d[0] + 1e-10*d[0];
-                d[1] = d[1] + 2e-10*d[1];
+                d[1] = d[1] - 2e-10*d[1];
             }
         });
     });
@@ -67,6 +67,7 @@ function cleanData(data){
 function generateL1Voronoi(sitePoints, width, height, nudgeData = true){
 
     if(nudgeData){
+        console.log("nudging data");
         sitePoints = cleanData(sitePoints);
     }
 
@@ -82,7 +83,9 @@ function generateL1Voronoi(sitePoints, width, height, nudgeData = true){
 
     const findBisector = curryFindBisector(findL1Bisector, width, height);
     const graph = recursiveSplit(sites, findBisector, width, height);
+
     return graph.map(site => {
+        
         site.polygonPoints = site.bisectors.reduce((total, bisector, index, bisectors)=>{
 
             if(index === 0){
@@ -120,24 +123,36 @@ function generateL1Voronoi(sitePoints, width, height, nudgeData = true){
                     nextPoints = nextPoints.reverse();
                 }
 
-                nextPoints = nextPoints.filter(e => !samePoint(e,last));
-
                 return {
                     points:[...total.points, ...nextPoints],
                     used: [...total.used, nextBisector]
                 };
             }
         },{}).points;
+        
 
-        let head = site.polygonPoints[0];
-        let tail = site.polygonPoints[site.polygonPoints.length - 1]
-
-        if(isPointonEdge(head) && isPointonEdge(tail)){
-            let cornerX = (head[0] === 0 || head[0] === width) ? head[0] : tail[0];
-            let cornerY = (head[1] === 0 || head[1] === height) ? head[1] : tail[1];
+       const corners = [
+            [0,0],
+            [width, 0],
+            [width, height],
+            [0,height]
+        ];
+        
+        // finally we need to catch if it ends one an edge
+        if(
+            isPointonEdge(site.polygonPoints[0]) &&
+            isPointonEdge(site.polygonPoints[site.polygonPoints.length - 1]) &&
+            !arePointsOnSameEdge(site.polygonPoints[0], site.polygonPoints[site.polygonPoints.length - 1])
+        ){
             
-            site.polygonPoints.push([cornerX, cornerY]);
+            const filteredCorners = corners.filter(e => {
+                return site.bisectors.every(d => !bisectorIntersection({points:[e, site.site]}, d));     
+            });
+
+            site.polygonPoints = [...site.polygonPoints, ...filteredCorners];
         }
+
+        site.polygonPoints = site.polygonPoints.sort((a,b)=> angle(site.site, a) - angle(site.site, b));
 
         site.d = `M ${ site.polygonPoints.map(e => e.join(" ")).join(" L")} Z`;
 
@@ -149,6 +164,13 @@ function generateL1Voronoi(sitePoints, width, height, nudgeData = true){
                point[0] === width ||
                point[1] === 0 ||
                point[1] === height;
+    }
+
+    function arePointsOnSameEdge(P1, P2){
+        return (P1[0] === P2[0] && P1[0] === 0)     ||
+               (P1[0] === P2[0] && P1[0] === width) ||
+               (P1[1] === P2[1] && P1[1] === 0)     ||
+               (P1[1] === P2[1] && P1[1] === height)
     }
 
 }

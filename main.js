@@ -14,11 +14,9 @@ function randomNormal(sharpness){
     return new Array(sharpness).fill(0).map(e => Math.random()).reduce((c,e) => c + e, 0) / sharpness;
 }
 
-//let raw = new Array(512).fill(0).map(e => [randomNormal(2) * width, randomNormal(2) * height]);
-let raw = new Array(32).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
-let sites = cleanData(raw.slice(0));
-console.log(JSON.stringify(sites.sort((a,b) => a[0] - b[0])));
-console.log(sites.length);
+let raw = new Array(1024).fill(0).map(e => [Math.floor(randomNormal(2) * width), Math.floor(randomNormal(2) * height)]);
+let sites = raw.slice(0);
+
 document.getElementById("points").textContent = JSON.stringify(sites.sort((a,b) => {
     if(a[0] !== b[0]){
         return a[0] - b[0]
@@ -28,7 +26,7 @@ document.getElementById("points").textContent = JSON.stringify(sites.sort((a,b) 
     }
 }), null);
 
-let vectorPoints = generateL1Voronoi(sites ,width, height);
+let vectorPoints = generateL1Voronoi(sites ,width, height, true);
 
 // draw svg shapes
 vectorPoints.forEach(site =>{
