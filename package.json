@@ -13,6 +13,12 @@
   },
   "author": "Joe Dragovich <joseph.dragovich@gmail.com>",
   "license": "MIT",
+  "keywords":[
+    "manhattan distance",
+    "L1",
+    "voronoi",
+    "SVG"
+  ],
   "bugs": {
     "url": "https://github.com/JDragovich/manhattan-voronoi/issues"
   },
