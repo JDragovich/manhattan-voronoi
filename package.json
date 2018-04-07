@@ -1,6 +1,6 @@
 {
   "name": "manhattan-vorononi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "library for generating L1(manhattan distance) voronoi diagrams",
   "main": "dist/voronoi.js",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "author": "Joe Dragovich <joseph.dragovich@gmail.com>",
   "license": "MIT",
-  "keywords":[
+  "keywords": [
     "manhattan distance",
     "L1",
     "voronoi",
