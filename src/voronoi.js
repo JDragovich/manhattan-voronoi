@@ -34,6 +34,7 @@ function generateVoronoiPoints(points, width, height, distanceCallback){
     return imageData;
 };
 
+const epsOffset = 1e-10;
 /**
  * Nudge points to hopefully eliminate square bisectors
  * 
@@ -46,8 +47,8 @@ function cleanData(data){
                 i !== j &&
                 Math.abs(d[0] - e[0]) === Math.abs(d[1] - e[1])
             ){
-                d[0] = d[0] + 1e-10*d[1];
-                d[1] = d[1] + 2e-10*d[0];
+                d[0] = d[0] + epsOffset;
+                d[1] = d[1] - epsOffset;
             }
         });
     });
