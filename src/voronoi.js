@@ -48,7 +48,7 @@ function cleanData(data){
                 Math.abs(d[0] - e[0]) === Math.abs(d[1] - e[1])
             ){
                 d[0] = d[0] + epsOffset;
-                d[1] = d[1] + epsOffset;
+                d[1] = d[1] - epsOffset;
             }
         });
     });
